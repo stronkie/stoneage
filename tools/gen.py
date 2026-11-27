@@ -352,6 +352,14 @@ for y in range(BH):
         v = g0[y] if c == 0 else pal0[8 + c]
         pv.putpixel((x, y), (((v >> 8) & 15) * 17, ((v >> 4) & 15) * 17, (v & 15) * 17))
 pv.resize((BW * 2, BH * 2), Image.NEAREST).save(os.path.join(ROOT, 'art', 'jungle_preview.png'))
+pv.save(os.path.join(ROOT, 'art', 'jungle_tile.png'))
+# the loading picture (for src/loader.s) and the title picture
+import pics
+loadpal, titlepal = pics.make(os.path.join(ROOT, 'src'))
+with open(os.path.join(ROOT, 'src', 'loadpal.i'), 'w') as f:
+    f.write('; made by tools/gen.py\nloadpal\tdc.w\t' + ','.join('$%03x' % c for c in loadpal) + '\n')
+S('titlepal\tdc.w\t' + ','.join('$%03x' % c for c in titlepal))
+S('titlepic\tincbin\t"titlepic.bin"')
 
 # ------------------------------------------------------------------ sprites
 def pix(rows, w, h, align='bottom', dx=None):
@@ -528,57 +536,43 @@ def voice(bars, step, wavelen):
         w += [p, d]
     return w
 TUNES = {}
-# a bouncy "caveman stomp" in D minor
-TUNES['title'] = (6, True, 32, 30, [
- 'D5 - F5 - A5 - D6 - C6 - A5 - G5 - F5 -',
- 'E5 - G5 - A5 - - - . . A4 - D5 - - -',
- 'D5 - F5 - A5 - D6 - E6 - D6 - C6 - A5 -',
- 'G5 - - - E5 - C5 - D5 - - - . . . .',
- 'F5 - F5 - G5 - A5 - A#5 - A5 - G5 - F5 -',
- 'E5 - C5 - E5 - G5 - F5 - E5 - D5 - C5 -',
- 'D5 - F5 - A5 - D6 - C6 - A5 - G5 - E5 -',
- 'D5 - - - - - - - . . . . . . . .'], [
- 'D3 - . D3 A2 - . A2 D3 - . D3 A2 - C3 -',
- 'C3 - . C3 G2 - . G2 A2 - . A2 E3 - C#3 -',
- 'D3 - . D3 A2 - . A2 D3 - . D3 A2 - F2 -',
- 'C3 - . C3 G2 - . G2 D3 - A2 - D2 - . .',
- 'A#2 - . A#2 F2 - . F2 A#2 - . A#2 F2 - . F2',
- 'C3 - . C3 G2 - . G2 C3 - . C3 A2 - . A2',
- 'D3 - . D3 A2 - . A2 G2 - . G2 A2 - A2 -',
- 'D3 - A2 - D3 - . . D2 - . . . . . .'])
-TUNES['game'] = (5, True, 20, 22, [
- 'A4 - . A4 C5 - D5 - E5 - . E5 D5 - C5 -',
- 'D5 - - - A4 - - - G4 - A4 - C5 - A4 -',
- 'A4 - . A4 C5 - D5 - E5 - G5 - E5 - D5 -',
- 'C5 - D5 - C5 - A4 - A4 - - - . . . .',
- 'G5 - . G5 E5 - D5 - E5 - . E5 C5 - A4 -',
- 'C5 - - - D5 - - - E5 - D5 - C5 - D5 -',
- 'A4 - . A4 C5 - D5 - E5 - G5 - E5 - D5 -',
- 'C5 - A4 - G4 - E4 - A4 - - - . . . .'], [
- 'A2 . A2 . E3 . A2 . A2 . A2 . E3 . A2 .',
- 'D2 . D2 . A2 . D2 . E2 . E2 . B2 . E2 .',
- 'A2 . A2 . E3 . A2 . A2 . A2 . E3 . A2 .',
- 'F2 . F2 . C3 . F2 . A2 . A2 . E3 . A2 .',
- 'C3 . C3 . G3 . C3 . A2 . A2 . E3 . A2 .',
- 'F2 . F2 . C3 . F2 . G2 . G2 . D3 . G2 .',
- 'A2 . A2 . E3 . A2 . F2 . F2 . C3 . F2 .',
- 'G2 . G2 . D3 . G2 . A2 . A2 . E3 . A2 .'])
-TUNES['clear'] = (5, False, 40, 34, [
- 'D5 F5 A5 D6 - - A5 D6 - - - - . . . .'], [
- 'D3 - - - A2 - - - D3 - - - . . . .'])
-TUNES['over'] = (8, False, 36, 32, [
- 'A4 - G4 - F4 - E4 - D4 - - - - - . .'], [
- 'D3 - C3 - A#2 - A2 - D2 - - - - - . .'])
-TUNES['win'] = (5, False, 40, 34, [
- 'D5 F5 A5 D6 A5 D6 F6 - - - E6 - F6 - A6 - - - - - . . . .'], [
- 'D3 - A2 - D3 - F3 - - - A2 - D3 - F3 - - - - - . . . .'])
+# classical pieces (public domain), played on a soft flute-like wave
+# title: J. S. Bach (attr.), Minuet in G
+MIN_A = ['D5 - G4 A4 B4 C5', 'D5 - G4 - G4 -', 'E5 - C5 D5 E5 F#5', 'G5 - G4 - G4 -',
+         'C5 - D5 C5 B4 A4', 'B4 - C5 B4 A4 G4']
+TUNES['title'] = (8, True, 26, 22,
+    MIN_A + ['F#4 - G4 A4 B4 G4', 'A4 - - - - -'] + MIN_A + ['A4 - B4 A4 G4 F#4', 'G4 - - - - -'],
+    ['G3 - - - A3 -', 'B3 - - - G3 -', 'C4 - - - - -', 'B3 - - - - -', 'A3 - - - - -', 'G3 - - - - -',
+     'D4 - - - B3 -', 'D3 - - - - -',
+     'G3 - - - A3 -', 'B3 - - - G3 -', 'C4 - - - - -', 'B3 - - - - -', 'A3 - - - - -', 'G3 - - - - -',
+     'C4 - D4 - D3 -', 'G3 - D3 - G2 -'])
+# the game: E. Grieg, In the Hall of the Mountain King (a caveman's tune)
+MK = ['B3 C#4 D4 E4 F#4 D4 F#4 -', 'F4 C#4 F4 - E4 C4 E4 -', 'B3 C#4 D4 E4 F#4 D4 F#4 B4', 'A4 F#4 D4 F#4 A4 - - -']
+def transpose(bar, n):
+    names = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    out = []
+    for t in bar.split():
+        if t in ('-', '.'):
+            out.append(t)
+            continue
+        k = names.index(t[:-1]) + 12 * int(t[-1]) + n
+        out.append(names[k % 12] + str(k // 12))
+    return ' '.join(out)
+MKB = ['B2 . F#2 . B2 . F#2 .', 'C#3 . G#2 . C3 . G2 .', 'B2 . F#2 . B2 . F#2 .', 'D3 . A2 . D3 . F#2 .']
+TUNES['game'] = (6, True, 18, 18, MK + MK + [transpose(b, 7) for b in MK] + MK,
+                 MKB + MKB + [transpose(b, 7) for b in MKB] + MKB)
+TUNES['clear'] = (6, False, 32, 26, ['G4 B4 D5 G5 - - D5 G5 - - - - . . . .'], ['G2 - - - D3 - - - G3 - - - . . . .'])
+TUNES['over'] = (9, False, 30, 26, ['B4 - A4 - G4 - F#4 - E4 - - - - - . .'], ['E3 - D3 - C3 - B2 - E2 - - - - - . .'])
+# all levels done: L. van Beethoven, Ode to Joy
+TUNES['win'] = (7, False, 32, 26, ['E5 E5 F5 G5 G5 F5 E5 D5 C5 C5 D5 E5 E5 - D5 D5 - - . .'],
+                ['C3 - G2 - C3 - G2 - A2 - E2 - G2 - G2 - - - . .'])
 S('tunetab')
 for n in ('title', 'game', 'clear', 'over', 'win'):
     S('\tdc.l\ttune_%s' % n)
 for n, (step, loop, v0, v1, mel, bass) in TUNES.items():
     S('tune_%s\tdc.w\t%d,%d' % (n, v0, v1))
     S('\tdc.l\ttune_%s_0,tune_%s_1' % (n, n))
-    for vi, (bars, wl) in enumerate(((mel, 16), (bass, 32))):
+    for vi, (bars, wl) in enumerate(((mel, 32), (bass, 32))):
         S('tune_%s_%d' % (n, vi))
         bytes_(voice(bars, step, wl) + [0xffff if loop else 0xfffe, 0], 16, 'w')
 
@@ -618,7 +612,48 @@ SFX['life'] = [a for f in (587, 698, 880, 1175, 880, 1175) for a in synth(0.06, 
 SFX['dark'] = synth(0.6, lambda t: 600 - t * 800, 100, 0.8)
 SFX['land'] = noise(0.04, 60, 2, 4)
 SFX['pop'] = noise(0.08, 110, 1.5, 1)
-order = ['jump', 'throw', 'hit', 'key', 'gem', 'bulb', 'death', 'tick', 'life', 'dark', 'land', 'pop']
+# the jungle: birds, a monkey, crickets (played now and then, quietly)
+def sweep(dur, f0, f1, vol=90):
+    n = int(dur * RATE)
+    e = env(n, a=0.005, d=0.8)
+    out, ph = [], 0.0
+    for i in range(n):
+        t = i / n
+        ph += (f0 + (f1 - f0) * t) / RATE
+        out.append(int(vol * e[i] * math.sin(2 * math.pi * ph)))
+    return out
+def gap(dur):
+    return [0] * int(dur * RATE)
+SFX['bird'] = sweep(.05, 2500, 3800) + gap(.03) + sweep(.05, 2600, 3900) + gap(.03) + sweep(.07, 2400, 3600)
+SFX['bird2'] = sweep(.16, 1600, 2600) + sweep(.18, 2600, 1800)
+def monkey():
+    out = []
+    for k, (f0, f1, dur, ah) in enumerate(((330, 420, .14, 0), (340, 440, .14, 0), (480, 600, .17, 1), (470, 590, .2, 1))):
+        n = int(dur * RATE)
+        e = env(n, a=0.01, d=0.6)
+        ph, prev = 0.0, 0.0
+        for i in range(n):
+            f = f0 + (f1 - f0) * math.sin(math.pi * i / n)
+            ph += f / RATE
+            v = (ph % 1) * 2 - 1                    # a buzzy voice...
+            v = v * .6 + (rng.uniform(-1, 1) * .5 if ah and i < n * .15 else 0)
+            prev = prev * .55 + v * .45            # ...made softer
+            out.append(int(110 * e[i] * prev))
+        out += gap(.05)
+    return out
+SFX['monkey'] = monkey()
+def cricket():
+    out = []
+    for k in range(3):
+        n = int(.07 * RATE)
+        for i in range(n):
+            t = i / RATE
+            out.append(int(55 * (1 if math.sin(2 * math.pi * 4400 * t) > 0 else -1) * (.5 + .5 * math.sin(2 * math.pi * 45 * t))))
+        out += gap(.06)
+    return out
+SFX['cricket'] = cricket()
+order = ['jump', 'throw', 'hit', 'key', 'gem', 'bulb', 'death', 'tick', 'life', 'dark', 'land', 'pop',
+         'bird', 'bird2', 'monkey', 'cricket']
 for i, n in enumerate(order):
     S('SFX_%s\tequ\t%d' % (n.upper(), i))
 S('sfxtab')
@@ -629,7 +664,8 @@ S('\tsection\tchipdata,data_c')
 S('bgN\tincbin\t"bg_n.bin"')
 S('bgR\tincbin\t"bg_r.bin"')
 S('silence\tdc.w\t0,0')
-S('wave_sq\tdc.b\t' + ','.join(['60'] * 8 + ['-60'] * 8))
+S('wave_sq')
+bytes_([int(70 * math.sin(2 * math.pi * i / 32) + 16 * math.sin(4 * math.pi * i / 32)) & 255 for i in range(32)])
 tri = [int(100 * (1 - abs((i / 32) * 4 - 2))) for i in range(32)]
 S('wave_tri')
 bytes_(tri)

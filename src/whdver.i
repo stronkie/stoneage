@@ -1,1 +1,1 @@
-	dc.b	'Version 0.1',0
+	dc.b	'Version 0.2',0

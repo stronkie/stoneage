@@ -135,6 +135,8 @@ ask:	lea	t_where,a0
 	lea	f_game,a0
 	moveq	#1,d7			; must be there
 	bsr	copy_file
+	lea	f_main,a0			; the game itself (the loader starts it)
+	bsr	copy_file
 	lea	f_icon,a0
 	bsr	copy_file
 	lea	f_readme,a0
@@ -377,6 +379,7 @@ conname		dc.b	'CON:20/12/600/180/Stronkie',39,'s StoneAge - Hard Disk Installer'
 volname		dc.b	'Stronkies StoneAge:',0
 drawername	dc.b	'StronkiesStoneAge',0
 f_game		dc.b	'SStoneAge',0
+f_main		dc.b	'StoneAge.game',0
 f_icon		dc.b	'SStoneAge.info',0
 f_readme	dc.b	'ReadMe',0
 f_rec		dc.b	'StronkiesStoneAge.hi',0

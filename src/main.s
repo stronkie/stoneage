@@ -125,6 +125,10 @@ K_RALT	equ	$65
 
 ;---------------------------------------------------------------------
 start:	movem.l	d1-d7/a0-a6,-(sp)
+	cmp.l	#'SSAL',d0			; started by the loader (it has the Workbench message)
+	seq	d0
+	ext.w	d0
+	move.w	d0,fromloader
 	bsr	SysTakeover
 	bsr	InitAll
 	bsr	Splash
@@ -177,6 +181,7 @@ cp_con0:	ds.l	1
 gradptr:	ds.l	PFH
 cp_botcon:	ds.l	1
 cp_botcol:	ds.l	1
+cp_botpal:	ds.l	1
 ; display
 titlemode:	ds.w	1
 dmode:		ds.w	1
@@ -196,6 +201,9 @@ strx1:		ds.w	1
 stry:		ds.w	1
 ; sound
 sfxpend:	ds.b	4
+sfxbusy:	ds.w	4
+sfxvol:		ds.w	1
+ambienton:	ds.w	1
 musicon:	ds.w	1
 musplay:	ds.w	1
 musdone:	ds.w	1
@@ -219,6 +227,8 @@ filebuf:	ds.b	4+HSN*8+4
 ; title
 titlepage:	ds.w	1
 titletime:	ds.w	1
+tsx:		ds.w	1
+tsdir:		ds.w	1
 devmode:	ds.w	1
 devused:	ds.w	1
 devinv:		ds.w	1
@@ -261,6 +271,20 @@ gameover:	ds.w	1
 mstimer:	ds.w	1
 msnext:		ds.w	1
 rnd:		ds.l	1
+ambsnd:		ds.w	1
+birdon:		ds.w	1
+birdx:		ds.w	1
+birdy:		ds.w	1
+birddir:	ds.w	1
+birdt:		ds.w	1
+monkon:		ds.w	1
+monkx:		ds.w	1
+monky:		ds.w	1
+monkdir:	ds.w	1
+monkph:		ds.w	1
+monkt:		ds.w	1
+cliptop:	ds.w	1
+fromloader:	ds.w	1
 nenemies:	ds.w	1
 enemies:	ds.b	EN_SIZE*MAXEN
 missiles:	ds.b	MS_SIZE*MAXMS

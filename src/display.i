@@ -169,6 +169,7 @@ BuildCopper:
 	addq.w	#2,d1
 	add.l	#PLANE,d0
 	dbf	d2,.bb
+	move.l	a0,cp_botpal
 	lea	hudpal+2,a1
 	move.w	#$0182,d1
 	moveq	#14,d2
@@ -218,6 +219,27 @@ SetGrad:
 .x:	movem.l	(sp)+,d0-d1/a0-a2
 	rts
 
+; SetScreenPal: a0 = 16 colours for the screen bitmap parts (the panels,
+; and the title / playfield part when the screen bitmap is shown there)
+SetScreenPal:
+	movem.l	d0/a0-a2,-(sp)
+	move.l	a0,a2
+	move.l	cp_hud,a1
+	moveq	#15,d0
+.h:	move.w	(a2)+,2(a1)
+	addq.l	#4,a1
+	dbf	d0,.h
+	lea	2(a0),a2
+	move.l	cp_botpal,a1
+	moveq	#14,d0
+.b:	move.w	(a2)+,2(a1)
+	addq.l	#4,a1
+	dbf	d0,.b
+	move.l	cp_botcol,a1
+	move.w	(a0),(a1)
+	movem.l	(sp)+,d0/a0-a2
+	rts
+
 ; SetSprPal: a0 = the 16 sprite colours
 SetSprPal:
 	movem.l	d0/a0-a1,-(sp)
@@ -232,6 +254,9 @@ SetSprPal:
 ; SetTitleDisplay: the whole screen bitmap, panel colours everywhere
 SetTitleDisplay:
 	move.w	#1,titlemode
+	move.w	#-PFTOP,cliptop
+	lea	hudpal,a0
+	bsr	SetScreenPal
 	move.w	#256-PFTOP,clipbot
 	move.w	#1,sprscr
 	clr.w	camx
@@ -253,6 +278,7 @@ SetTitleDisplay:
 ; SetGameDisplay: the level bitmap below the panel
 SetGameDisplay:
 	clr.w	titlemode
+	clr.w	cliptop
 	clr.w	sprscr
 	move.w	#PFH,clipbot
 	move.l	cp_con0,a0
@@ -589,8 +615,10 @@ OB_H	equ	4
 OB_PTR	equ	6
 OB_STEP	equ	10
 OB_W	equ	12			; 1 or 2 channels
-OB_GRP	equ	14			; 0 Stronkie, 1 monster, 2 yo-yo, 3 balloon/dagger
-OB_SIZE	equ	16
+OB_GRP	equ	14			; 0 Stronkie, 1 monster, 2 yo-yo, 3 balloon/dagger,
+					; 4 decoration (big), 5 decoration (small)
+OB_CH	equ	16			; the channel it got (-1 none)
+OB_SIZE	equ	20
 MAXOBJ	equ	24
 
 ; ToScreen: d0 = world x, d1 = world y, d4 = size (16 or 32)
@@ -646,8 +674,8 @@ AddSmall:
 	add.w	d2,a1
 	moveq	#1,d2
 AddObj:	; d0/d1 screen, d2 width, d3 group, d4 size, a1 data
-	move.w	d4,d5
-	neg.w	d5
+	move.w	cliptop,d5
+	sub.w	d4,d5
 	cmp.w	d5,d0
 	ble	.x
 	cmp.w	#320,d0
@@ -660,7 +688,7 @@ AddObj:	; d0/d1 screen, d2 width, d3 group, d4 size, a1 data
 	cmp.w	#MAXOBJ,d5
 	bhs	.x
 	addq.w	#1,nobj
-	lsl.w	#4,d5
+	mulu	#OB_SIZE,d5
 	lea	objs,a0
 	add.w	d5,a0
 	move.w	d0,OB_SX(a0)
@@ -682,32 +710,32 @@ AddObj:	; d0/d1 screen, d2 width, d3 group, d4 size, a1 data
 .x:	movem.l	(sp)+,d0-d5/a0-a1
 	rts
 
-; BuildSprites: sort the objects and fill the lists
+; BuildSprites: sort the objects top to bottom, give out the channels in
+; order of importance, then fill the lists (top to bottom per channel)
 BuildSprites:
 	movem.l	d0-d7/a0-a4,-(sp)
 	lea	sprlists,a0
 	lea	sprwp,a1
-	lea	sprnext,a2
 	moveq	#7,d0
 .i:	move.l	a0,(a1)+
-	move.w	#-100,(a2)+
 	lea	SPRLEN(a0),a0
 	dbf	d0,.i
-	; insertion sort on the screen y (objects are 16 bytes)
 	move.w	nobj,d7
+	beq	.end
+	; insertion sort on the screen y
 	cmp.w	#2,d7
 	blo	.sorted
 	lea	objs,a0
 	moveq	#1,d6
 .s1:	move.w	d6,d5
 .s2:	move.w	d5,d0
-	lsl.w	#4,d0
+	mulu	#OB_SIZE,d0
 	lea	(a0,d0.w),a1
 	lea	-OB_SIZE(a1),a2
 	move.w	OB_SY(a2),d1
 	cmp.w	OB_SY(a1),d1
 	ble	.s3
-	moveq	#3,d2
+	moveq	#OB_SIZE/4-1,d2
 .sw:	move.l	(a1),d3
 	move.l	(a2),(a1)+
 	move.l	d3,(a2)+
@@ -718,27 +746,44 @@ BuildSprites:
 	cmp.w	d7,d6
 	blo	.s1
 .sorted:
+	; no channel yet
 	lea	objs,a3
+	move.w	d7,d0
+	subq.w	#1,d0
+.nc:	move.w	#-1,OB_CH(a3)
+	lea	OB_SIZE(a3),a3
+	dbf	d0,.nc
+	; the passes: Stronkie, yo-yo, balloons, monsters, birds, monkey
+	lea	passes,a4
+.pass:	move.w	(a4)+,d6			; the group
+	bmi	.emit
+	lea	objs,a3
+	move.w	nobj,d5
+	subq.w	#1,d5
+.po:	cmp.w	OB_GRP(a3),d6
+	bne	.pn
+	lea	grpchans,a0			; 2 channels to try
+	move.w	d6,d0
+	add.w	d0,d0
+	add.w	d0,d0
+	add.w	d0,a0
+	move.w	(a0)+,d1
+	bsr	.free
+	beq	.got
+	move.w	(a0),d1
+	bmi	.pn
+	bsr	.free
+	bne	.pn
+.got:	move.w	d1,OB_CH(a3)
+.pn:	lea	OB_SIZE(a3),a3
+	dbf	d5,.po
+	bra	.pass
+.emit:	lea	objs,a3
 	move.w	nobj,d7
 	subq.w	#1,d7
-	bmi	.end
-.o:	move.w	OB_GRP(a3),d0
-	moveq	#0,d1				; Stronkie: 0
-	tst.w	d0
-	beq	.try
-	moveq	#2,d1
-	cmp.w	#2,d0
-	beq	.try
-	moveq	#3,d1
-	cmp.w	#3,d0
-	beq	.try
-	moveq	#4,d1				; monsters: 4+5, else 6+7
-	bsr	.fits
-	beq	.put
-	moveq	#6,d1
-.try:	bsr	.fits
-	bne	.next
-.put:	bsr	Emit
+.o:	move.w	OB_CH(a3),d1
+	bmi	.next
+	bsr	Emit
 .next:	lea	OB_SIZE(a3),a3
 	dbf	d7,.o
 .end:	lea	sprwp,a1
@@ -749,17 +794,56 @@ BuildSprites:
 	clr.w	nobj
 	movem.l	(sp)+,d0-d7/a0-a4
 	rts
-; .fits: channel d1 free at this object's top line? (Z = yes)
-.fits:	move.w	d1,d2
-	add.w	d2,d2
-	lea	sprnext,a2
-	move.w	OB_SY(a3),d3
-	cmp.w	(a2,d2.w),d3
-	blt	.no
-	moveq	#0,d2
+; .free: can object a3 use channel d1 (and d1+1 when 32 wide)? Z = yes
+.free:	movem.l	d0-d5/a1,-(sp)
+	move.w	OB_SY(a3),d2			; top
+	move.w	d2,d3
+	add.w	OB_H(a3),d3			; bottom + 1
+	move.w	d1,d4				; the channels it needs: d4..d5
+	move.w	d1,d5
+	cmp.w	#2,OB_W(a3)
+	bne	.f0
+	addq.w	#1,d5
+.f0:	lea	objs,a1
+	move.w	nobj,d0
+	subq.w	#1,d0
+.fl:	cmp.l	a1,a3
+	beq	.fn
+	move.w	OB_CH(a1),d1
+	bmi	.fn
+	; does it use one of our channels?
+	cmp.w	d5,d1
+	bgt	.fn
+	cmp.w	#2,OB_W(a1)
+	bne	.f1
+	addq.w	#1,d1
+.f1:	cmp.w	d4,d1
+	blt	.fn
+	; and do they overlap (with 2 lines between)?
+	move.w	OB_SY(a1),d1
+	sub.w	#2,d1
+	cmp.w	d3,d1
+	bge	.fn
+	move.w	OB_SY(a1),d1
+	add.w	OB_H(a1),d1
+	addq.w	#2,d1
+	cmp.w	d2,d1
+	ble	.fn
+	moveq	#1,d0				; busy
+	bra	.fx
+.fn:	lea	OB_SIZE(a1),a1
+	dbf	d0,.fl
+	moveq	#0,d0
+.fx:	tst.w	d0
+	movem.l	(sp)+,d0-d5/a1
 	rts
-.no:	moveq	#1,d2
-	rts
+passes:		dc.w	0,2,3,1,5,4,-1
+grpchans:	dc.w	0,-1			; Stronkie
+		dc.w	4,6			; monsters
+		dc.w	2,-1			; the yo-yo
+		dc.w	3,-1			; balloons, daggers
+		dc.w	4,6			; the monkey
+		dc.w	3,2			; birds
 
 ; Emit: object a3 into channel d1 (and d1+1 when 32 wide)
 Emit:	movem.l	d0-d7/a0-a2,-(sp)
@@ -767,14 +851,14 @@ Emit:	movem.l	d0-d7/a0-a2,-(sp)
 	move.w	OB_H(a3),d3			; lines
 	move.l	OB_PTR(a3),a1
 	move.w	OB_STEP(a3),d6
-	tst.w	d2
-	bpl	.t
-	move.w	d2,d4				; cut the lines above the playfield
-	neg.w	d4
+	cmp.w	cliptop,d2
+	bge	.t
+	move.w	cliptop,d4			; cut the lines above the playfield
+	sub.w	d2,d4
 	sub.w	d4,d3
 	muls	d6,d4
 	add.w	d4,a1
-	moveq	#0,d2
+	move.w	cliptop,d2
 .t:	move.w	d2,d4
 	add.w	d3,d4
 	sub.w	clipbot,d4
@@ -796,9 +880,9 @@ Emit:	movem.l	d0-d7/a0-a2,-(sp)
 	add.w	#16,d0
 	move.l	OB_PTR(a3),a1			; the right half: 32 lines further
 	lea	128(a1),a1
-	move.w	OB_SY(a3),d4
-	bpl	.r
-	neg.w	d4
+	move.w	cliptop,d4
+	sub.w	OB_SY(a3),d4
+	ble	.r
 	muls	d6,d4
 	add.w	d4,a1
 .r:	move.w	d2,d4

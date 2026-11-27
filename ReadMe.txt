@@ -54,6 +54,14 @@ THE DEMO
   The free demo has levels 1 and 2.
 
 CHANGES
+  V0.2 (27 Nov 2026) - a loading picture in 32 colours (Stronkie
+  throwing his yo-yo in the jungle) while the game loads; a picture
+  title screen (the jungle, the monsters, Stronkie walking on a log);
+  classical music (Bach's Minuet in G on the title, Grieg's In the
+  Hall of the Mountain King in the game, Beethoven's Ode to Joy at
+  the end) with a softer flute sound; jungle sounds (parrots, a
+  monkey, crickets); now and then a monkey swings or walks by and
+  parrots fly over, in the game and on the title.
   V0.1 (27 Nov 2026) - the first version: 8 jungle levels (tree
   trunks; vines, ropes, chains; a jungle behind that scrolls at half
   speed; framed score and message panels), the yo-yo, Scrubblies, Hooters, Poglets, balloons

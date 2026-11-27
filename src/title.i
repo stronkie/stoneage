@@ -14,32 +14,29 @@ Splash:	bsr	SetTitleDisplay
 	bra	WaitFrames
 
 ; Title: d0 = 0 start a game, 1 quit
+; The title is a picture (tools/pics.py) with the text on dark strips;
+; Stronkie walks along the log, the monsters sit on it, the jungle's
+; animals pass by.
 Title:	tst.w	quitnow
 	bne	.quit
 	bsr	SetTitleDisplay
-	bsr	ClearScreen
+	lea	titlepal,a0
+	bsr	SetScreenPal
+	bsr	SetPFPal
+	move.l	#titlepal,pfpal
+	bsr	CopyPic
 	bsr	StopMusic
 	moveq	#0,d0
 	bsr	PlayTune
-	moveq	#4,d1
-	bsr	DrawLogo
-	lea	t_title1,a0
-	moveq	#54,d1
-	moveq	#2,d3
-	bsr	DrawBigC
-	lea	t_title2,a0
-	moveq	#74,d1
-	moveq	#10,d3
-	bsr	DrawBigC
 	ifne	DEMO
 	lea	t_demo,a0
 	moveq	#12,d1
-	moveq	#12,d3
+	moveq	#6,d3
 	bsr	DrawTextC
 	endc
 	lea	t_press,a0
 	moveq	#27,d1
-	moveq	#15,d3
+	moveq	#2,d3
 	bsr	DrawTextC
 	lea	t_credit,a0
 	moveq	#29,d1
@@ -47,24 +44,30 @@ Title:	tst.w	quitnow
 	bsr	DrawTextC
 	lea	t_ver,a0
 	moveq	#30,d1
-	moveq	#13,d3
+	moveq	#1,d3
 	bsr	DrawTextC
 	lea	t_keys1,a0
 	moveq	#31,d1
-	moveq	#13,d3
+	moveq	#3,d3
 	bsr	DrawTextC
 	clr.w	titlepage
 	bsr	TitlePage
 	bsr	TitleDev
 	clr.w	lastkey
+	move.w	#40,tsx
+	move.w	#1,tsdir
+	move.w	#100,birdt
+	move.w	#250,monkt
+	clr.w	birdon
+	clr.w	monkon
+	move.w	#60,ambsnd
 .l:	bsr	WaitFrame
 	bsr	UpdateDisplay
 	tst.w	quitnow
 	bne	.quit
-	tst.w	titlepage
-	bne	.ns
 	bsr	TitleSprites
-.ns:	bsr	GetKey
+	bsr	Ambient
+	bsr	GetKey
 	cmp.w	#K_ESC,d0
 	beq	.quit
 	cmp.w	#K_D,d0				; CTRL + ALT + D: developer mode
@@ -108,7 +111,7 @@ Title:	tst.w	quitnow
 	btst	#4,d1
 	bne	.start
 	addq.w	#1,titletime
-	cmp.w	#400,titletime
+	cmp.w	#450,titletime
 	blo	.l
 	eor.w	#1,titlepage
 	bsr	TitlePage
@@ -116,56 +119,89 @@ Title:	tst.w	quitnow
 .start:	bsr	ClearSprites
 	moveq	#0,d0
 	rts
-.quit:	moveq	#1,d0
+.quit:	moveq	#0,d0
+	moveq	#1,d0
 	rts
 
-; TitlePage: rows 13-24: the story and the monsters, or the high scores
+; CopyPic: the title picture into the screen bitmap
+CopyPic:
+	movem.l	d0/a0-a1,-(sp)
+	lea	titlepic,a0
+	lea	screen,a1
+	move.w	#PLANE*4/16-1,d0
+.l:	move.l	(a0)+,(a1)+
+	move.l	(a0)+,(a1)+
+	move.l	(a0)+,(a1)+
+	move.l	(a0)+,(a1)+
+	dbf	d0,.l
+	movem.l	(sp)+,d0/a0-a1
+	rts
+
+; RestoreRows: d0 = first row, d1 = rows (8 lines): the picture back
+RestoreRows:
+	movem.l	d0-d3/a0-a1,-(sp)
+	mulu	#320,d0
+	mulu	#80,d1				; longs per plane
+	moveq	#3,d3
+.p:	lea	screen,a1
+	lea	titlepic,a0
+	add.l	d0,a1
+	add.l	d0,a0
+	move.w	d1,d2
+	subq.w	#1,d2
+.l:	move.l	(a0)+,(a1)+
+	dbf	d2,.l
+	add.l	#PLANE,d0
+	dbf	d3,.p
+	movem.l	(sp)+,d0-d3/a0-a1
+	rts
+
+; TitlePage: rows 13-23: the story and the monsters, or the high scores
 TitlePage:
 	movem.l	d0-d7/a0-a2,-(sp)
 	clr.w	titletime
 	moveq	#13,d0
-	moveq	#12,d1
-	bsr	ClearRows
+	moveq	#11,d1
+	bsr	RestoreRows
 	tst.w	titlepage
 	bne	.hi
 	lea	t_s1,a0
 	moveq	#2,d0
-	moveq	#18,d1
+	moveq	#14,d1
 	moveq	#2,d3
 	bsr	DrawText
 	lea	t_s2,a0
-	moveq	#20,d1
+	moveq	#16,d1
 	moveq	#1,d3
 	bsr	DrawText
 	lea	t_s3,a0
-	moveq	#21,d1
+	moveq	#17,d1
 	bsr	DrawText
 	lea	t_s4,a0
-	moveq	#22,d1
+	moveq	#18,d1
 	bsr	DrawText
 	lea	t_s5,a0
-	moveq	#23,d1
+	moveq	#19,d1
 	bsr	DrawText
 	lea	monnames,a2
 	moveq	#14,d1
 	moveq	#2,d7
 .m:	move.l	a2,a0
 	moveq	#27,d0
-	moveq	#10,d3
+	moveq	#5,d3
 	bsr	DrawText
 .m1:	tst.b	(a2)+
 	bne	.m1
 	move.l	a2,a0
 	addq.w	#1,d1
-	moveq	#13,d3
+	moveq	#1,d3
 	bsr	DrawText
 .m2:	tst.b	(a2)+
 	bne	.m2
 	addq.w	#3,d1
 	dbf	d7,.m
 	bra	.x
-.hi:	bsr	ClearSprites
-	lea	t_hst,a0
+.hi:	lea	t_hst,a0
 	moveq	#13,d1
 	moveq	#2,d3
 	bsr	DrawTextC
@@ -206,7 +242,7 @@ TitlePage:
 	moveq	#1,d3
 	tst.w	d7
 	bne	.c
-	moveq	#15,d3
+	moveq	#2,d3
 .c:	bsr	DrawText
 	addq.l	#8,a2
 	addq.w	#1,d7
@@ -215,17 +251,33 @@ TitlePage:
 .x:	movem.l	(sp)+,d0-d7/a0-a2
 	rts
 
-; TitleSprites: Stronkie and the three monsters on the story page
+; TitleSprites: Stronkie walks to and fro on the log; on the story page
+; the three monsters sit on it too
 TitleSprites:
-	movem.l	d0-d3,-(sp)
-	moveq	#52,d0
-	move.w	#108-PFTOP,d1
-	moveq	#IMG_STAND,d2
-	btst	#5,frame+3
-	beq	.s
-	moveq	#IMG_THROW,d2
-.s:	moveq	#0,d3
+	movem.l	d0-d3/a0,-(sp)
+	move.w	tsx,d0
+	add.w	tsdir,d0
+	cmp.w	#8,d0
+	bgt	.a
+	move.w	#1,tsdir
+.a:	cmp.w	#280,d0
+	blt	.b
+	move.w	#-1,tsdir
+.b:	move.w	d0,tsx
+	move.l	frame,d2
+	lsr.w	#3,d2
+	and.w	#3,d2
+	lea	walkseq,a0
+	move.b	(a0,d2.w),d2
+	ext.w	d2
+	tst.w	tsdir
+	bpl	.c
+	addq.w	#1,d2
+.c:	move.w	#164-PFTOP,d1
+	moveq	#0,d3
 	bsr	AddBig
+	tst.w	titlepage
+	bne	.x
 	moveq	#1,d3
 	move.l	frame,d2
 	lsr.w	#4,d2
@@ -234,17 +286,17 @@ TitleSprites:
 	move.w	d2,-(sp)
 	add.w	#IMG_SCRUB1,d2
 	move.w	#176,d0
-	move.w	#104-PFTOP,d1
+	move.w	#100-PFTOP,d1
 	bsr	AddBig
 	move.w	(sp),d2
 	add.w	#IMG_HOOT1,d2
-	move.w	#136-PFTOP,d1
+	move.w	#132-PFTOP,d1
 	bsr	AddBig
 	move.w	(sp)+,d2
 	add.w	#IMG_POG1,d2
-	move.w	#168-PFTOP,d1
+	move.w	#164-PFTOP,d1
 	bsr	AddBig
-	movem.l	(sp)+,d0-d3
+.x:	movem.l	(sp)+,d0-d3/a0
 	rts
 
 ; TitleDev: row 25: the developer mode line
@@ -252,7 +304,7 @@ TitleDev:
 	movem.l	d0-d3/a0-a1,-(sp)
 	moveq	#25,d0
 	moveq	#1,d1
-	bsr	ClearRows
+	bsr	RestoreRows
 	tst.w	devmode
 	beq	.x
 	lea	linebuf,a1
@@ -275,7 +327,7 @@ TitleDev:
 	bne	.c3
 	lea	linebuf,a0
 	moveq	#25,d1
-	moveq	#12,d3
+	moveq	#6,d3
 	bsr	DrawTextC
 .x:	movem.l	(sp)+,d0-d3/a0-a1
 	rts

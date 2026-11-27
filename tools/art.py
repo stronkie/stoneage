@@ -444,11 +444,98 @@ POP = [
     "................",
 ]
 
+
+# ------------------------------------------------------------------ the jungle's other animals (only decoration)
+# a black monkey with a yellow face and belly (monster colours), swinging from vine to vine
+MONKEY_SWING = [
+    "......................KK......",
+    ".....................KK.......",
+    "....................KK........",
+    "...................KK.........",
+    "........KKKK......KK..........",
+    ".......KKKKKK....KK...........",
+    "......KMKKKKMK..KK............",
+    "......KKYYYYKK.KK.............",
+    "......KYKYYKYKKK..............",
+    "......KYYYYYYKK...............",
+    ".......KYMMYKKK...............",
+    "........KYYKKKK...............",
+    ".......KKKKKKKKK..............",
+    "......KKKYYYYKKK..............",
+    ".....KK.KYYYYKK.K.............",
+    "....KK..KYYYYK..KK............",
+    "...KK...KKYYKK...K............",
+    "...K.....KKKKK....K...........",
+    ".........KK..KK...K...........",
+    "........KK....KK..K..KK.......",
+    "........K......K...KKKK.......",
+    ".......KK......KK.............",
+]
+MONKEY_WALK1 = [
+    "..............KKKK........",
+    ".............KKKKKK.......",
+    "............KKYYYYKK......",
+    ".KK.........KYKYYYYK......",
+    "K..K.......KKYYYYYYK......",
+    "K...K..KKKKKKKYMMYK.......",
+    ".K..KKKKKKKKKKKKKK........",
+    "..KKKKKKKKKKKKKKK.........",
+    "...KKKKYYYYYKKKKK.........",
+    "...KKKKKYYYYKKKK..........",
+    "...KK.KK....KK.KK.........",
+    "..KK..K......K..K.........",
+    "..K..KK.....KK..KK........",
+]
+MONKEY_WALK2 = [
+    "..............KKKK........",
+    ".............KKKKKK.......",
+    "............KKYYYYKK......",
+    "............KYKYYYYK......",
+    ".KK........KKYYYYYYK......",
+    "K..KK..KKKKKKKYMMYK.......",
+    "K...KKKKKKKKKKKKKK........",
+    ".KKKKKKKKKKKKKKKK.........",
+    "...KKKKYYYYYKKKKK.........",
+    "...KKKKKYYYYKKKK..........",
+    "....KKK......KKK..........",
+    "....K.KK....K.KK..........",
+    "...KK..K...KK..K..........",
+]
+# a red parrot (the yo-yo colours: red, white, black)
+BIRD1 = [
+    "................",
+    "....KK..........",
+    "....KWK.........",
+    ".....KWK........",
+    "......KWK..KK...",
+    "..KKKKKRRKKRRK..",
+    ".KRRRRRRRRRRKWK.",
+    "KRRRRRRRRRRRKKK.",
+    ".KKKRRRRRRRK....",
+    "....KKKKKK......",
+]
+BIRD2 = [
+    "................",
+    "................",
+    "................",
+    "...........KK...",
+    "..KKKKKKKKKRRK..",
+    ".KRRRRRRRRRRKWK.",
+    "KRRRRRRRRRRRKKK.",
+    ".KKKKWWWWRRK....",
+    "....KWWWKK......",
+    ".....KWK........",
+    "......K.........",
+]
+
 # 32 x 32 pictures: name -> (rows, offset x, mirrorable)
 BIG = [
     ('stand', STAND), ('walk1', WALK1), ('walk2', WALK2), ('throw', THROW),
     ('jump', JUMP), ('slide', SLIDE), ('climb1', CLIMB1), ('climb2', CLIMB2), ('dead', DEAD),
     ('scrub1', SCRUB1), ('scrub2', SCRUB2), ('hoot1', HOOT1), ('hoot2', HOOT2),
     ('pog1', POG1), ('pog2', POG2), ('poof1', POOF1), ('poof2', POOF2),
+    ('mswing1', MONKEY_SWING), ('mswing2', [r[::-1] for r in MONKEY_SWING]),
+    ('mwalk1', MONKEY_WALK1), ('mwalk2', MONKEY_WALK2),
 ]
-SMALL = [('yoyo', YOYO), ('balloon1', BALLOON1), ('balloon2', BALLOON2), ('dagger', DAGGER), ('pop', POP)]
+SMALL = [('yoyo', YOYO), ('balloon1', BALLOON1), ('balloon2', BALLOON2), ('dagger', DAGGER), ('pop', POP), ('bird1', BIRD1), ('bird2', BIRD2),
+         ('bird1l', [r[::-1] for r in BIRD1]), ('bird2l', [r[::-1] for r in BIRD2])]

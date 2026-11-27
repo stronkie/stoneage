@@ -15,10 +15,10 @@ upside down, turned 90 degrees, black and white with flashes - with faster monst
 
 | File | What |
 |---|---|
-| `StronkiesStoneAge_V0.1.adf` | the game, bootable floppy (packed, with the hard disk installer) |
+| `StronkiesStoneAge_V0.2.adf` | the game, bootable floppy (packed, with the hard disk installer) |
 | `StronkiesStoneAge_Demo.adf` | free demo: levels 1 and 2 |
-| `StronkiesStoneAge_V0.1_harddrive.zip` | drawer for a hard disk / CF card |
-| `StronkiesStoneAge_V0.1_WHDLoad.zip` | WHDLoad install (own slave, no Kickstart image needed; F10 quits) |
+| `StronkiesStoneAge_V0.2_harddrive.zip` | drawer for a hard disk / CF card |
+| `StronkiesStoneAge_V0.2_WHDLoad.zip` | WHDLoad install (own slave, no Kickstart image needed; F10 quits) |
 | `StronkiesStoneAge_Demo_WHDLoad.zip` | WHDLoad install of the free demo |
 | `print/` | manual (A5), fold-up box (A3), disk labels (A4) |
 | `levels.txt` | all 8 levels as text |
@@ -62,9 +62,9 @@ and 55 KB other memory. Joystick in port 2.
 ## Building
 Needs the Stronkie Soft Amiga toolkit (`. amiga-toolkit/setup.sh`).
 ```
-VER=0.1 tools/build.sh          # levels check -> gen.py -> assemble -> pack -> ADFs + zips
+VER=0.2 tools/build.sh          # levels check -> gen.py -> assemble -> pack -> ADFs + zips
 tests/run_tests.sh              # level checker, physics check in the 68000 harness, screenshots
-python3 tools/make_print.py 0.1 # manual, box, disk labels
+python3 tools/make_print.py 0.2 # manual, box, disk labels
 ```
 - `tools/levels.py` - the 8 levels (built with a small builder) and a copy of the player physics; every level is
   checked: all keys, gems and bulbs reachable from the start without a deadly drop, and no trap (from every
@@ -77,6 +77,18 @@ python3 tools/make_print.py 0.1 # manual, box, disk labels
   `src/install.s` - hard disk installer. `src/whdload.s` - WHDLoad slave.
 
 ## Changelog
+
+### Next on itch (Sunday)
+**V0.2 (27 Nov 2026)** - pictures, classical music, jungle life
+- Loading picture (32 colours): Stronkie throwing his yo-yo in the jungle with a Scrubbly, a Hooter, a monkey
+  and parrots. A small loader (`SStoneAge`) shows it while it loads `StoneAge.game`.
+- Title screen is now a picture: the jungle, the game's logo, the monsters with their points and Stronkie
+  walking on a tree trunk; the high score table on the same picture.
+- Classical music with a flute sound: Bach's Minuet in G (title), Grieg's In the Hall of the Mountain King
+  (game), Beethoven's Ode to Joy (game won).
+- Jungle sounds (parrots, a monkey, crickets) at a low volume when the sound channel is free.
+- Now and then a monkey swings by on a vine or walks along the trunk, and parrots fly across: in the game and
+  on the title.
 
 ### On itch (published 27 Nov 2026)
 **V0.1 (27 Nov 2026)** - the first version

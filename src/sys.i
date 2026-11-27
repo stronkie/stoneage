@@ -7,6 +7,8 @@ SysTakeover:
 	sub.l	a1,a1
 	jsr	-294(a6)			; FindTask(0)
 	move.l	d0,a4
+	tst.w	fromloader			; the loader took the Workbench message
+	bne	.cli
 	tst.l	172(a4)				; pr_CLI
 	bne	.cli
 	lea	92(a4),a0			; started from Workbench
@@ -394,7 +396,7 @@ GetKey:	move.w	lastkey,d0
 InitSound:
 	lea	CUSTOM,a5
 	move.l	#wave_sq,AUD0(a5)
-	move.w	#8,AUD0+4(a5)
+	move.w	#16,AUD0+4(a5)
 	move.w	#400,AUD0+6(a5)
 	clr.w	AUD0+8(a5)
 	move.l	#wave_tri,AUD0+$10(a5)
@@ -413,6 +415,7 @@ InitSound:
 	cmp.w	#4,d0
 	bne	.s
 	move.w	#1,musicon
+	move.w	#1,ambienton
 	rts
 
 Audio:	movem.l	d0-d7/a0-a2/a5,-(sp)
@@ -431,13 +434,22 @@ Audio:	movem.l	d0-d7/a0-a2/a5,-(sp)
 .np:	addq.w	#1,d0
 	cmp.w	#4,d0
 	bne	.p
-	bsr	MusicTick
+	lea	sfxbusy,a0			; how long a channel still plays
+	tst.w	4(a0)
+	beq	.b3
+	subq.w	#1,4(a0)
+.b3:	tst.w	6(a0)
+	beq	.b4
+	subq.w	#1,6(a0)
+.b4:	bsr	MusicTick
 	movem.l	(sp)+,d0-d7/a0-a2/a5
 	rts
 
 ; PlaySfx: d0 = effect. Ticks, landing and the yo-yo use channel 3,
 ; the rest channel 2.
 PlaySfx:
+	move.w	#64,sfxvol
+PlaySfxV:
 	movem.l	d0-d3/a0-a1,-(sp)
 	moveq	#2,d1
 	cmp.w	#SFX_TICK,d0
@@ -447,7 +459,9 @@ PlaySfx:
 	cmp.w	#SFX_THROW,d0
 	beq	.c3
 	cmp.w	#SFX_POP,d0
-	bne	.ch
+	beq	.c3
+	cmp.w	#SFX_BIRD,d0
+	blo	.ch				; the jungle sounds: channel 3 too
 .c3:	moveq	#3,d1
 .ch:	lea	CUSTOM,a1
 	moveq	#0,d2
@@ -468,7 +482,16 @@ PlaySfx:
 	move.l	(a0)+,(a1)
 	move.w	(a0),4(a1)
 	move.w	#428,6(a1)
-	move.w	#64,8(a1)
+	move.w	sfxvol,8(a1)
+	move.w	(a0),d3				; busy for (words * 2 / 166) frames
+	ext.l	d3
+	add.l	d3,d3
+	divu	#166,d3
+	addq.w	#2,d3
+	lea	sfxbusy,a0
+	move.w	d1,d2
+	add.w	d2,d2
+	move.w	d3,(a0,d2.w)
 	moveq	#0,d2
 	bset	d1,d2
 	bset	#15,d2
@@ -477,6 +500,19 @@ PlaySfx:
 	move.b	#2,(a0,d1.w)
 	movem.l	(sp)+,d0-d3/a0-a1
 	rts
+
+; PlayAmbient: d0 = a jungle sound, quietly on channel 3, only when it is free
+PlayAmbient:
+	tst.w	sfxbusy+6
+	bne	.x
+	tst.w	ambienton
+	beq	.x
+	move.w	#22,sfxvol
+	cmp.w	#SFX_MONKEY,d0
+	bne	.v
+	move.w	#30,sfxvol
+.v:	bsr	PlaySfxV
+.x:	rts
 
 ; PlayTune: d0 = tune (0 title, 1 game, 2 clear, 3 game over, 4 winner)
 PlayTune:

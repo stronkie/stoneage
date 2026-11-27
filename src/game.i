@@ -1262,8 +1262,192 @@ DrawActors:
 	bsr	AddSmall
 .mn:	addq.l	#MS_SIZE,a2
 	dbf	d7,.m
+	bsr	Ambient
 	movem.l	(sp)+,d0-d7/a0-a2
 	rts
+
+
+;=====================================================================
+; the jungle's other animals (only decoration, they do no harm) and
+; the jungle sounds: a parrot flies by now and then, a monkey swings
+; from vine to vine across the top (on the title it also walks along
+; the log). Coordinates: the world (game) or the screen (title).
+;=====================================================================
+Ambient:
+	movem.l	d0-d7/a0,-(sp)
+	; jungle sounds
+	subq.w	#1,ambsnd
+	bgt	.b
+	bsr	Random
+	and.w	#255,d0
+	add.w	#150,d0
+	move.w	d0,ambsnd
+	bsr	Random
+	and.w	#3,d0
+	lea	ambsounds,a0
+	move.b	(a0,d0.w),d0
+	ext.w	d0
+	bsr	PlayAmbient
+.b:	; the width of the view
+	move.w	#320,d6
+	tst.w	titlemode
+	bne	.vw
+	cmp.w	#DM_ROT,dmode
+	bne	.vw
+	move.w	#PFH,d6
+.vw:	move.w	camx,d5
+	; the parrot
+	tst.w	birdon
+	bne	.bm
+	subq.w	#1,birdt
+	bgt	.m
+	bsr	Random
+	and.w	#511,d0
+	add.w	#300,d0
+	move.w	d0,birdt
+	bsr	Random
+	move.w	#1,birddir
+	move.w	d5,d1
+	sub.w	#16,d1
+	btst	#4,d0
+	beq	.bd
+	move.w	#-1,birddir
+	move.w	d5,d1
+	add.w	d6,d1
+.bd:	move.w	d1,birdx
+	and.w	#63,d0
+	add.w	#4,d0
+	tst.w	titlemode
+	beq	.by
+	sub.w	#PFTOP,d0
+.by:	move.w	d0,birdy
+	move.w	#1,birdon
+	moveq	#SFX_BIRD2,d0
+	bsr	PlayAmbient
+	bra	.m
+.bm:	move.w	birddir,d0
+	add.w	d0,d0
+	add.w	d0,birdx
+	move.l	frame,d0			; a little up and down
+	and.w	#31,d0
+	bne	.bo
+	addq.w	#2,birdy
+	btst	#5,frame+3
+	beq	.bo
+	subq.w	#4,birdy
+.bo:	move.w	birdx,d0			; gone?
+	move.w	d5,d1
+	sub.w	#20,d1
+	cmp.w	d1,d0
+	blt	.boff
+	move.w	d5,d1
+	add.w	d6,d1
+	addq.w	#4,d1
+	cmp.w	d1,d0
+	ble	.m
+.boff:	clr.w	birdon
+.m:	; the monkey
+	tst.w	monkon
+	bne	.mm
+	subq.w	#1,monkt
+	bgt	.draw
+	bsr	Random
+	and.w	#1023,d0
+	add.w	#600,d0
+	move.w	d0,monkt
+	clr.w	monkph
+	move.w	#1,monkon			; swinging
+	move.w	#-8,monky
+	tst.w	titlemode
+	beq	.ms
+	move.w	#-PFTOP,monky
+	tst.w	titlepage			; the high scores: walking on the log
+	beq	.ms
+	move.w	#2,monkon
+	move.w	#164-PFTOP,monky
+.ms:	bsr	Random
+	move.w	#1,monkdir
+	move.w	d5,d1
+	sub.w	#32,d1
+	btst	#3,d0
+	beq	.md
+	move.w	#-1,monkdir
+	move.w	d5,d1
+	add.w	d6,d1
+.md:	move.w	d1,monkx
+	moveq	#SFX_MONKEY,d0
+	bsr	PlayAmbient
+	bra	.draw
+.mm:	addq.w	#1,monkph
+	move.w	monkdir,d0
+	cmp.w	#2,monkon
+	beq	.mw
+	btst	#0,monkph+1			; swinging: 1.5 pixels a frame
+	beq	.m1
+	add.w	d0,d0
+.m1:	add.w	d0,monkx
+	bra	.mo
+.mw:	btst	#0,monkph+1			; walking: half a pixel a frame
+	beq	.mo
+	add.w	d0,monkx
+.mo:	move.w	monkx,d0
+	move.w	d5,d1
+	sub.w	#36,d1
+	cmp.w	d1,d0
+	blt	.moff
+	move.w	d5,d1
+	add.w	d6,d1
+	addq.w	#4,d1
+	cmp.w	d1,d0
+	ble	.draw
+.moff:	clr.w	monkon
+.draw:	tst.w	birdon
+	beq	.dm
+	moveq	#SM_BIRD1,d2
+	tst.w	birddir
+	bpl	.d1
+	moveq	#SM_BIRD1L,d2
+.d1:	btst	#2,frame+3
+	beq	.d2
+	addq.w	#1,d2
+.d2:	move.w	birdx,d0
+	move.w	birdy,d1
+	moveq	#5,d3
+	bsr	AddSmall
+.dm:	move.w	monkon,d4
+	beq	.x
+	cmp.w	#2,d4
+	beq	.dw
+	move.w	monkph,d0			; a swing every 40 frames
+	ext.l	d0
+	divu	#40,d0
+	moveq	#IMG_MSWING1,d2
+	btst	#0,d0
+	beq	.d3
+	moveq	#IMG_MSWING2,d2
+.d3:	swap	d0
+	lea	swingtab,a0
+	moveq	#0,d1
+	move.b	(a0,d0.w),d1
+	add.w	monky,d1
+	bra	.d5
+.dw:	moveq	#IMG_MWALK1,d2
+	btst	#3,frame+3
+	beq	.d4
+	moveq	#IMG_MWALK2,d2
+.d4:	tst.w	monkdir
+	bpl	.d6
+	addq.w	#1,d2				; facing left
+.d6:	move.w	monky,d1
+.d5:	move.w	monkx,d0
+	moveq	#4,d3
+	bsr	AddBig
+.x:	movem.l	(sp)+,d0-d7/a0
+	rts
+
+swingtab:	dc.b	0,1,2,3,4,5,6,7,8,9,10,11,11,12,12,13,13,14,14,14,14,14,14,14,13,13,12,12,11,11,10,9,8,7,6,5,4,3,2,1
+ambsounds:	dc.b	SFX_BIRD,SFX_BIRD2,SFX_CRICKET,SFX_BIRD
+	even
 
 ;=====================================================================
 ; the score panel (screen rows 0-2)

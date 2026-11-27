@@ -21,6 +21,7 @@ python3 tools/icons.py build
 (cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -kick1hunks -nosym -o ../build/$EXE main.s)
 (cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -kick1hunks -nosym -DDEMO=1 -o ../build/${EXE}Demo main.s)
 (cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -kick1hunks -nosym -o ../build/Install install.s)
+(cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -kick1hunks -nosym -o ../build/Loader loader.s)
 (cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -nosym -o ../build/$NAME.slave whdload.s)
 # a test build with symbols for the harness
 (cd src && vasmm68k_mot -quiet -m68000 -Fhunkexe -kick1hunks -o ../build/test.game main.s)
@@ -28,13 +29,14 @@ python3 tools/icons.py build
 for kind in full demo; do
   rm -rf build/disk && mkdir -p build/disk/s
   if [ $kind = full ]; then
-    python3 $TK/tools/pack/crunch.py build/$EXE build/disk/$EXE >/dev/null
+    python3 $TK/tools/pack/crunch.py build/$EXE build/disk/StoneAge.game >/dev/null
     cp build/Install build/disk/Install; cp build/Install.info build/disk/Install.info
     ADF=build/${NAME}_V$VER.adf; V="$VOL"
   else
-    python3 $TK/tools/pack/crunch.py build/${EXE}Demo build/disk/$EXE >/dev/null
+    python3 $TK/tools/pack/crunch.py build/${EXE}Demo build/disk/StoneAge.game >/dev/null
     ADF=build/${NAME}_Demo.adf; V="$VOL Demo"
   fi
+  python3 $TK/tools/pack/crunch.py build/Loader build/disk/$EXE >/dev/null
   cp build/$EXE.info build/disk/$EXE.info
   cp ReadMe.txt build/disk/ReadMe
   printf '%s\n' "$EXE" > build/disk/s/startup-sequence
@@ -43,7 +45,8 @@ for kind in full demo; do
 done
 # 3. hard drive / CF card zip (unpacked program)
 rm -rf build/hd && mkdir -p build/hd/$NAME
-cp build/$EXE build/$EXE.info build/hd/$NAME/; cp ReadMe.txt build/hd/$NAME/ReadMe
+cp build/Loader build/hd/$NAME/$EXE; cp build/$EXE build/hd/$NAME/StoneAge.game
+cp build/$EXE.info build/hd/$NAME/; cp ReadMe.txt build/hd/$NAME/ReadMe
 cp build/drawer.info build/hd/$NAME.info
 (cd build/hd && rm -f ../${NAME}_V${VER}_harddrive.zip && zip -qr ../${NAME}_V${VER}_harddrive.zip $NAME $NAME.info)
 echo "built build/${NAME}_V${VER}_harddrive.zip"
