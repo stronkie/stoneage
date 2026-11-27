@@ -105,7 +105,7 @@ StartLevel:
 	move.w	d0,tleft
 	clr.w	dark
 	clr.w	levelclear
-	move.w	#200,mstimer
+	move.w	#300,mstimer
 	move.w	#1,msnext
 	lea	missiles,a0
 	moveq	#MAXMS*MS_SIZE/2-1,d0
@@ -123,6 +123,7 @@ StartLevel:
 	bsr	SetLevelPal
 	bsr	Camera
 	bsr	SetGameDisplay
+	bsr	MsgBox
 	bsr	HudAll
 	; level n: name
 	lea	linebuf,a1
@@ -202,7 +203,23 @@ SetLevelPal:
 .s:	add.w	d0,a0
 	move.l	a0,pfpal
 	bsr	SetPFPal
-	lea	sprpal,a0			; the sprites
+	; the sky gradient (not when turned or black and white: one colour)
+	move.w	dmode,d0
+	cmp.w	#DM_ROT,d0
+	bhs	.flat
+	lea	skygrad,a0
+	tst.w	dark
+	beq	.g
+	lea	darkgrad,a0
+.g:	move.w	lvsky,d0
+	mulu	#PFH*2,d0
+	add.l	d0,a0
+	moveq	#0,d0
+	cmp.w	#DM_FLIP,dmode
+	bne	.g2
+	moveq	#1,d0
+.g2:	bsr	SetGrad
+.flat:	lea	sprpal,a0			; the sprites
 	tst.w	dark
 	beq	.sl
 	lea	sprpaldark,a0
@@ -976,16 +993,16 @@ Missiles:
 	subq.w	#1,mstimer
 	bgt	.upd
 	; how often: faster in later levels and loops
-	move.w	#200,d0
+	move.w	#300,d0
 	move.w	level,d1
-	mulu	#10,d1
+	mulu	#15,d1
 	sub.w	d1,d0
 	move.w	loop,d1
 	mulu	#30,d1
 	sub.w	d1,d0
-	cmp.w	#60,d0
+	cmp.w	#80,d0
 	bge	.t
-	moveq	#60,d0
+	moveq	#80,d0
 .t:	move.w	d0,mstimer
 	lea	missiles,a2
 	moveq	#MAXMS-1,d7
@@ -996,10 +1013,14 @@ Missiles:
 	bra	.upd
 .new:	move.w	msnext,MS_KIND(a2)
 	eor.w	#3,msnext			; 1 <-> 2
-	bsr	Random
-	and.w	#127,d0
-	sub.w	#64,d0
-	add.w	px,d0
+	bsr	Random			; 32-95 pixels to the left or right
+	move.w	d0,d1
+	and.w	#63,d0
+	add.w	#32,d0
+	btst	#8,d1
+	beq	.rs
+	neg.w	d0
+.rs:	add.w	px,d0
 	bsr	ClampX
 	move.w	d0,MS_X(a2)
 	move.w	#PFH,MS_Y(a2)
@@ -1249,15 +1270,18 @@ DrawActors:
 ;=====================================================================
 HudAll:	movem.l	d0-d7/a0,-(sp)
 	moveq	#0,d0
-	moveq	#3,d1
+	moveq	#4,d1
 	bsr	ClearRows
+	moveq	#1,d0				; the frame of the panel
+	moveq	#30,d1
+	bsr	DrawBox
 	lea	t_score,a0
-	moveq	#0,d0
-	moveq	#0,d1
+	moveq	#1,d0
+	moveq	#1,d1
 	moveq	#3,d3
 	bsr	DrawText
 	lea	t_hi,a0
-	moveq	#14,d0
+	moveq	#15,d0
 	bsr	DrawText
 	lea	t_lev,a0
 	moveq	#26,d0
@@ -1265,13 +1289,13 @@ HudAll:	movem.l	d0-d7/a0,-(sp)
 	bsr	LevelNumber
 	moveq	#2,d4
 	moveq	#32,d5
-	moveq	#0,d6
+	moveq	#1,d6
 	moveq	#2,d3
 	bsr	DrawNum
 	ifne	DEMO
 	lea	t_demo2,a0
-	moveq	#36,d0
-	moveq	#0,d1
+	moveq	#35,d0
+	moveq	#1,d1
 	moveq	#12,d3
 	bsr	DrawText
 	endc
@@ -1281,13 +1305,13 @@ HudAll:	movem.l	d0-d7/a0,-(sp)
 	tst.w	devinv
 	beq	.dv
 	lea	t_devinv,a0
-.dv:	moveq	#36,d0
-	moveq	#0,d1
+.dv:	moveq	#35,d0
+	moveq	#1,d1
 	moveq	#12,d3
 	bsr	DrawText
 .nd:	lea	t_lives,a0
-	moveq	#0,d0
-	moveq	#1,d1
+	moveq	#1,d0
+	moveq	#2,d1
 	moveq	#3,d3
 	bsr	DrawText
 	moveq	#0,d0
@@ -1296,34 +1320,34 @@ HudAll:	movem.l	d0-d7/a0,-(sp)
 	bls	.lv
 	moveq	#9,d0
 .lv:	moveq	#1,d4
-	moveq	#6,d5
-	moveq	#1,d6
+	moveq	#7,d5
+	moveq	#2,d6
 	moveq	#2,d3
 	bsr	DrawNum
 	lea	t_keys,a0
-	moveq	#9,d0
-	moveq	#1,d1
+	moveq	#10,d0
+	moveq	#2,d1
 	moveq	#3,d3
 	bsr	DrawText
 	moveq	#0,d0
 	move.w	keystotal,d0
 	sub.w	keysleft,d0
 	moveq	#1,d4
-	moveq	#14,d5
+	moveq	#15,d5
 	moveq	#2,d3
 	bsr	DrawNum
 	move.w	#'/',d2
-	moveq	#15,d0
-	moveq	#1,d1
+	moveq	#16,d0
+	moveq	#2,d1
 	bsr	DrawChar
 	moveq	#0,d0
 	move.w	keystotal,d0
 	moveq	#1,d4
-	moveq	#16,d5
+	moveq	#17,d5
 	bsr	DrawNum
 	lea	t_time,a0
-	moveq	#19,d0
-	moveq	#1,d1
+	moveq	#20,d0
+	moveq	#2,d1
 	moveq	#3,d3
 	bsr	DrawText
 	move.w	#-1,hudtime
@@ -1336,21 +1360,21 @@ HudUpdate:
 	movem.l	d0-d7/a0,-(sp)
 	move.l	score,d0
 	moveq	#6,d4
-	moveq	#6,d5
-	moveq	#0,d6
+	moveq	#7,d5
+	moveq	#1,d6
 	moveq	#2,d3
 	bsr	DrawNum
 	move.l	hiscore,d0
-	moveq	#17,d5
+	moveq	#18,d5
 	moveq	#15,d3
 	bsr	DrawNum
-	; the time bar: 128 pixels (columns 24-39, lines 8-14)
+	; the time bar: 112 pixels (columns 25-38, lines 17-22)
 	moveq	#0,d0
 	move.w	tleft,d0
-	lsl.l	#7,d0
+	mulu	#112,d0
 	move.w	lvtime,d1
 	mulu	#50,d1
-	divu	d1,d0				; 0-128
+	divu	d1,d0				; 0-112
 	cmp.w	hudtime,d0
 	beq	.x
 	move.w	d0,hudtime
@@ -1359,7 +1383,7 @@ HudUpdate:
 	cmp.w	#10*50,tleft
 	bhs	.c
 	moveq	#12,d4				; red: hurry
-.c:	moveq	#24,d0
+.c:	moveq	#25,d0
 .b:	move.w	d6,d3
 	cmp.w	#8,d3
 	blo	.part
@@ -1371,34 +1395,132 @@ HudUpdate:
 	move.w	d5,d3
 	and.w	#$ff,d3
 	moveq	#0,d6
-.put:	moveq	#9,d1
+.put:	moveq	#17,d1
 	moveq	#5,d5
 .ln:	bsr	PutByte
 	addq.w	#1,d1
 	dbf	d5,.ln
 	addq.w	#1,d0
-	cmp.w	#40,d0
+	cmp.w	#39,d0
 	bne	.b
 .x:	movem.l	(sp)+,d0-d7/a0
 	rts
 
-; Message: a0 = text on row 2 of the panel
-Message:
-	movem.l	d0-d3,-(sp)
-	moveq	#2,d0
-	moveq	#1,d1
+; DrawBox: a bamboo frame on the screen bitmap from line d0 to line d1
+DrawBox:
+	movem.l	d0-d7,-(sp)
+	move.w	d0,d6
+	move.w	d1,d7
+	lea	boxcols,a0
+	moveq	#2,d5				; three lines at the top and the bottom
+.h:	move.w	(a0)+,d4
+	move.w	#$ff,d3
+	moveq	#0,d0
+.hl:	move.w	d6,d1
+	bsr	PutByte
+	move.w	d7,d1
+	bsr	PutByte
+	addq.w	#1,d0
+	cmp.w	#40,d0
+	bne	.hl
+	addq.w	#1,d6
+	subq.w	#1,d7
+	dbf	d5,.h
+	; the sides: 3 pixels in column 0 and column 39
+.v:	moveq	#0,d0
+	move.w	d6,d1
+	move.w	#$80,d3
+	move.w	boxcols,d4
+	bsr	PutBits
+	lsr.w	#1,d3
+	move.w	boxcols+2,d4
+	bsr	PutBits
+	lsr.w	#1,d3
+	move.w	boxcols+4,d4
+	bsr	PutBits
+	moveq	#39,d0
+	moveq	#1,d3
+	move.w	boxcols,d4
+	bsr	PutBits
+	add.w	d3,d3
+	move.w	boxcols+2,d4
+	bsr	PutBits
+	add.w	d3,d3
+	move.w	boxcols+4,d4
+	bsr	PutBits
+	addq.w	#1,d6
+	cmp.w	d7,d6
+	ble	.v
+	movem.l	(sp)+,d0-d7
+	rts
+boxcols:	dc.w	14,11,4			; light bamboo, bamboo, dark edge
+
+; PutBits: d0 = byte column, d1 = line, d3 = the bits, d4 = colour (other bits stay)
+PutBits:
+	movem.l	d0-d2/d5/a0,-(sp)
+	lea	screen,a0
+	mulu	#40,d1
+	add.w	d0,d1
+	add.l	d1,a0
+	move.b	d3,d5
+	not.b	d5
+	moveq	#0,d2
+.p:	btst	d2,d4
+	beq	.z
+	or.b	d3,(a0)
+	bra	.n
+.z:	and.b	d5,(a0)
+.n:	lea	PLANE(a0),a0
+	addq.w	#1,d2
+	cmp.w	#4,d2
+	bne	.p
+	movem.l	(sp)+,d0-d2/d5/a0
+	rts
+
+; MsgBox: the frame of the message panel under the playfield
+MsgBox:	movem.l	d0-d1,-(sp)
+	moveq	#28,d0
+	moveq	#4,d1
 	bsr	ClearRows
-	moveq	#2,d1
+	move.w	#PFTOP+PFH+2,d0
+	move.w	#PFTOP+PFH+26,d1
+	bsr	DrawBox
+	movem.l	(sp)+,d0-d1
+	rts
+
+; Message: a0 = text in the message panel (row 29), centred
+Message:
+	movem.l	d0-d3/a0-a1,-(sp)
+	lea	msgbuf,a1
+	moveq	#37,d0
+.f:	move.b	#' ',(a1)+
+	dbf	d0,.f
+	clr.b	(a1)
+	move.l	a0,a1
+	moveq	#38,d0
+.l:	tst.b	(a1)+
+	beq	.e
+	subq.w	#1,d0
+	bra	.l
+.e:	asr.w	#1,d0
+	lea	msgbuf,a1
+	add.w	d0,a1
+.c:	move.b	(a0)+,d1
+	beq	.d
+	move.b	d1,(a1)+
+	bra	.c
+.d:	lea	msgbuf,a0
+	moveq	#1,d0
+	moveq	#29,d1
 	moveq	#15,d3
-	bsr	DrawTextC
-	movem.l	(sp)+,d0-d3
+	bsr	DrawText
+	movem.l	(sp)+,d0-d3/a0-a1
 	rts
 ClearMessage:
-	movem.l	d0-d1,-(sp)
-	moveq	#2,d0
-	moveq	#1,d1
-	bsr	ClearRows
-	movem.l	(sp)+,d0-d1
+	move.l	a0,-(sp)
+	lea	t_empty,a0
+	bsr	Message
+	move.l	(sp)+,a0
 	rts
 
 ;=====================================================================
@@ -1489,4 +1611,5 @@ t_paused:	dc.b	'PAUSED - PRESS P',0
 t_dark:		dc.b	'LIGHTS OUT! FIND A LIGHT BULB!',0
 t_clear:	dc.b	'ALL KEYS! LEVEL CLEAR - TIME BONUS',0
 t_over:		dc.b	'GAME OVER',0
+t_empty:	dc.b	0
 	even

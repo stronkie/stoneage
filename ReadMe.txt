@@ -5,11 +5,13 @@ https://stronkie.itch.io/
 THE GAME
 Stronkie the caveman has lost the keys of the stone age! Guide him
 through 8 scrolling levels and collect every key before the time runs
-out. Armed with his trusty yo-yo he clears the Scrubblies, Hooters
+out, deep in the jungle - over fallen tree trunks, up vines, ropes
+and chains. Armed with his trusty yo-yo he clears the Scrubblies, Hooters
 and Poglets out of his way and pops the rising balloons and falling
 daggers.
 
-- Jump, and climb the ladders (ropes and chains in later levels).
+- Jump along the tree trunks and climb the vines (ropes and chains
+  in later levels).
 - Step off a ledge and Stronkie slides down diagonally. A drop of
   one floor is fine - a longer drop is fatal. So is falling into a
   pit.
@@ -52,8 +54,9 @@ THE DEMO
   The free demo has levels 1 and 2.
 
 CHANGES
-  V0.1 (27 Nov 2026) - the first version: 8 levels (bone ladders,
-  ropes, chains), the yo-yo, Scrubblies, Hooters, Poglets, balloons
+  V0.1 (27 Nov 2026) - the first version: 8 jungle levels (tree
+  trunks; vines, ropes, chains; a jungle behind that scrolls at half
+  speed; framed score and message panels), the yo-yo, Scrubblies, Hooters, Poglets, balloons
   and daggers, the timer and the darkness, light bulbs and gems,
   endless loops with the upside down / turned / black and white
   twists, high scores, free demo, hard disk installer, WHDLoad.

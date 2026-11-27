@@ -2,8 +2,8 @@
 
 A scrolling platform game for the Amiga 500. Created By Mark Stronks, Stronkie Soft (c) 2026.
 
-Stronkie the caveman, armed with a yo-yo, collects every key of a level before the time runs out.
-He jumps, climbs ladders (ropes and chains in later levels), slides down diagonally when he steps off a
+Stronkie the caveman, armed with a yo-yo, collects every key of a level before the time runs out, deep in the
+jungle. He jumps along fallen tree trunks, climbs vines (ropes and chains in later levels), slides down diagonally when he steps off a
 ledge - and a long drop is fatal. The yo-yo clears the Scrubblies, Hooters and Poglets and pops the
 rising balloons and falling daggers, but not in the dark: when the timer hits zero the lights go out.
 Light bulbs give time and light back, gems give points. After the 8 levels the game loops with a twist:
@@ -48,11 +48,13 @@ Amiga 500, 68000, Kickstart / Workbench 3.1 (1.3 works too), 1 MB chip RAM (8372
 and 55 KB other memory. Joystick in port 2.
 
 ## How it works
-- The level (60 x 12 tiles of 16 pixels, 960 x 192) is drawn once into an interleaved bitmap and scrolled with the
-  bitplane pointers and BPLCON1 (`src/display.i`). Upside down = the same bitmap shown from the last line up
+- Dual playfield, 3 + 3 planes: in front the level (60 x 12 tiles of 16 pixels, 960 x 192, colours 1-7), drawn once
+  into an interleaved bitmap; behind it the jungle (320 pixels wide, repeating, colours 9-15) at half speed.
+  Both scroll with their own bitplane pointers and BPLCON1 delay (`src/display.i`); colour 0 is a copper sky
+  gradient, one colour per line. The panels above and below are the 4-plane screen bitmap. Upside down = the same bitmap shown from the last line up
   (negative modulo). Turned 90 degrees = a second layout of the bitmap (320 x 960, tiles turned by `tools/gen.py`),
   scrolled vertically.
-- Tiles use colours 0-7; plane 3 holds only the yo-yo string, so colours 8-15 are the string colour.
+- The yo-yo string is XORed into the level bitmap (gold) and XORed away again the next frame.
 - All actors are hardware sprites with a vertical multiplexer: channels 0+1 Stronkie, 2 the yo-yo,
   3 balloons/daggers, 4+5 and 6+7 the monsters (32 pixels wide). Sprites are stored normal and turned.
 - 68000 only (`vasmm68k_mot -m68000`), everything polled once per frame, the system is given back on exit.
@@ -78,8 +80,10 @@ python3 tools/make_print.py 0.1 # manual, box, disk labels
 
 ### Not yet on itch
 **V0.1 (27 Nov 2026)** - the first version
-- 8 scrolling levels: Bone Valley, Mammoth Steps, Sabre Tooth Gap (bone ladders), Rope Bridge, Hanging Vines,
-  Dino Nest (ropes), Iron Age, Volcano (chains), each with its own sky.
+- 8 scrolling jungle levels: Jungle Edge, Monkey Trees, Snake River Gap (vines), Rope Bridge, Hanging Ropes,
+  Dino Nest (ropes), Temple Chains, Volcano Jungle (chains). Tree trunks to walk on, a jungle behind on the
+  second playfield that scrolls at half speed (parallax), a sky gradient per level (morning, day, mist,
+  sunset, night, volcano...). Score panel and message panel in bamboo frames.
 - Stronkie: walk, jump, climb, diagonal slide off ledges, deadly long drops and pits; the yo-yo.
 - Scrubblies, Hooters, Poglets (in the style of Mark's pictures), balloons and daggers.
 - Timer bar, lights out at zero (the yo-yo misses balloons and daggers in the dark), light bulbs, gems.

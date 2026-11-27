@@ -242,7 +242,7 @@ class B:
     def rows(self):
         return [''.join(r) for r in self.g]
 
-def L1():   # BONE VALLEY: easy, few gaps
+def L1():   # JUNGLE EDGE: easy, few gaps
     b = B()
     b.plat(11, 0, 22).plat(11, 27, 59)
     b.plat(7, 0, 10).plat(7, 13, 23).plat(7, 26, 39).plat(7, 43, 59)
@@ -253,7 +253,7 @@ def L1():   # BONE VALLEY: easy, few gaps
     b.put(1, 3, 'K').put(1, 28, '*').put(1, 55, 'K').put(1, 44, 'o')
     return b.rows()
 
-def L2():   # MAMMOTH STEPS: stairs of stepping stones
+def L2():   # MONKEY TREES: stairs of stepping stones
     b = B()
     b.plat(11, 0, 16).plat(11, 21, 26).plat(11, 33, 59)
     b.plat(9, 18, 19).plat(9, 29, 30)
@@ -266,7 +266,7 @@ def L2():   # MAMMOTH STEPS: stairs of stepping stones
     b.put(1, 4, 'K').put(1, 15, '*').put(1, 37, 'K').put(1, 52, '*').put(1, 58, 'K').put(0, 25, 'o')
     return b.rows()
 
-def L3():   # SABRE TOOTH GAP: pits to jump
+def L3():   # SNAKE RIVER GAP: pits to jump
     b = B()
     b.plat(11, 0, 7).plat(11, 11, 32).plat(11, 35, 38).plat(11, 41, 46).plat(11, 49, 59)
     b.plat(7, 2, 9).plat(7, 14, 25).plat(7, 30, 44).plat(7, 48, 55)
@@ -289,7 +289,7 @@ def L4():   # ROPE BRIDGE
     b.put(0, 9, 'o').put(0, 51, 'o')
     return b.rows()
 
-def L5():   # HANGING VINES
+def L5():   # HANGING ROPES
     b = B()
     b.plat(11, 0, 4).plat(11, 9, 18).plat(11, 26, 32).plat(11, 38, 44).plat(11, 49, 59)
     b.plat(9, 5, 6).plat(9, 21, 23).plat(9, 34, 35).plat(9, 46, 47)
@@ -316,7 +316,7 @@ def L6():   # DINO NEST
     b.put(0, 14, 'o').put(0, 39, 'o')
     return b.rows()
 
-def L7():   # IRON AGE
+def L7():   # TEMPLE CHAINS
     b = B()
     b.plat(11, 0, 9).plat(11, 13, 22).plat(11, 26, 35).plat(11, 39, 47).plat(11, 51, 59)
     b.plat(7, 0, 9).plat(7, 14, 22).plat(7, 25, 34).plat(7, 38, 48).plat(7, 51, 59)
@@ -342,16 +342,16 @@ def L8():   # VOLCANO: the hardest
     b.put(0, 15, 'o').put(0, 35, 'o').put(0, 55, 'o')
     return b.rows()
 
-# name, style (0 bone ladders, 1 ropes, 2 chains), seconds, map, sky colour set
+# name, style (0 vines, 1 ropes, 2 chains), seconds, map, sky colour set
 LEVELS = [
-    Level('BONE VALLEY', 0, 120, L1(), 0),
-    Level('MAMMOTH STEPS', 0, 120, L2(), 1),
-    Level('SABRE TOOTH GAP', 0, 110, L3(), 2),
+    Level('JUNGLE EDGE', 0, 120, L1(), 0),
+    Level('MONKEY TREES', 0, 120, L2(), 1),
+    Level('SNAKE RIVER GAP', 0, 110, L3(), 2),
     Level('ROPE BRIDGE', 1, 110, L4(), 3),
-    Level('HANGING VINES', 1, 105, L5(), 4),
+    Level('HANGING ROPES', 1, 105, L5(), 4),
     Level('DINO NEST', 1, 100, L6(), 5),
-    Level('IRON AGE', 2, 100, L7(), 6),
-    Level('VOLCANO', 2, 95, L8(), 7),
+    Level('TEMPLE CHAINS', 2, 100, L7(), 6),
+    Level('VOLCANO JUNGLE', 2, 95, L8(), 7),
 ]
 
 def build_all(verbose=False):

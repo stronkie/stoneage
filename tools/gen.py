@@ -37,9 +37,10 @@ def grey(c):
 
 # ------------------------------------------------------------------ palettes
 # screen (score panel, title): 0 black, 1 white, 2 yellow, 3 cyan, 4-9 the logo,
-# 10 magenta, 11 green, 12 red, 13 grey, 14 orange, 15 light yellow
+# 10 magenta, 11 bamboo, 12 red, 13 grey, 14 light bamboo, 15 light yellow
+# 11 and 14: the bamboo frames
 HUDPAL = [0x000, 0xfff, 0xfe3, 0x5ef, 0x113, 0xfe2, 0x3cf, 0xe90,
-          0x18b, 0xfac, 0xe3e, 0x4d4, 0xf33, 0x999, 0xf90, 0xffa]
+          0x18b, 0xfac, 0xe3e, 0x592, 0xf33, 0x999, 0xad5, 0xffa]
 S('hudpal\tdc.w\t' + ','.join('$%03x' % c for c in HUDPAL))
 # sprites 16-31: 17-19 Stronkie, 21-23 yo-yo / balloons / daggers, 25-27 and 29-31 monsters
 SPRPAL = [0x000, 0xfb8, 0xd71, 0x000,
@@ -50,40 +51,65 @@ S('sprpal\tdc.w\t' + ','.join('$%03x' % c for c in SPRPAL))
 # in the dark the monsters are hard to see; in the black and white loop everything is grey
 S('sprpaldark\tdc.w\t' + ','.join('$%03x' % (dim(c, .45) if i >= 8 else c) for i, c in enumerate(SPRPAL)))
 S('sprpalgrey\tdc.w\t' + ','.join('$%03x' % grey(c) for c in SPRPAL))
-# the playfield: 0 sky, 1 platform top, 2 yellow (roots, bone ladders, keys), 3 black,
-# 4 brown (ropes), 5 grey (chains, bulb base), 6 white, 7 gem; 8-15 the yo-yo string
-SKIES = [  # sky, platform top, roots, gem
-    (0x0dd, 0xd1d, 0xfe2, 0xf22),   # cyan, like the original
-    (0x2b2, 0xd1d, 0xfe2, 0x22f),   # green
-    (0xf95, 0xa2b, 0xfd4, 0x0c0),   # dusk
-    (0x6ae, 0xd3a, 0xec3, 0xf22),   # pale blue
-    (0x2a6, 0xe3c, 0xfe5, 0xf80),   # jungle
-    (0xec8, 0xb2b, 0xd92, 0x22f),   # sand
-    (0x448, 0xc4e, 0xdd4, 0x0ef),   # iron night
-    (0xa20, 0xf4f, 0xfe0, 0x0ef),   # volcano
+# the playfield is a dual playfield:
+#   front (playfield 1, colours 0-7): the level - 0 see-through, 1 black, 2 dark bark,
+#     3 bark, 4 dark leaf, 5 light leaf, 6 gold (keys, bulbs, the yo-yo string), 7 red (gems)
+#   back (playfield 2, colours 8-15): the jungle - 8 see-through (the sky gradient,
+#     colour 0, per line), 9-15 the trees, leaves and vines, darker further away
+FRONT = [0x000, 0x000, 0x521, 0x942, 0x261, 0x5b3, 0xfc2, 0xe22]
+# per level: the sky gradient (top, middle, bottom) and the jungle colours 9-15
+JUNGLES = [
+    # name           sky gradient                  jungle base colours (dark .. light)
+    ((0x9dc, 0x5b9, 0x264), [0x132, 0x153, 0x274, 0x386, 0x342, 0x564, 0x6a5]),   # morning
+    ((0xbea, 0x7c7, 0x353), [0x231, 0x253, 0x374, 0x495, 0x432, 0x654, 0x8b6]),   # bright day
+    ((0xcd9, 0x8a8, 0x354), [0x232, 0x243, 0x364, 0x575, 0x443, 0x665, 0x996]),   # misty
+    ((0xfb6, 0xc75, 0x433), [0x221, 0x332, 0x453, 0x564, 0x432, 0x643, 0x985]),   # sunset
+    ((0x7cb, 0x3a8, 0x143), [0x022, 0x143, 0x264, 0x385, 0x232, 0x354, 0x5a6]),   # deep green
+    ((0xec7, 0xa94, 0x542), [0x231, 0x342, 0x463, 0x584, 0x543, 0x754, 0xa95]),   # hot
+    ((0x67a, 0x356, 0x123), [0x112, 0x123, 0x234, 0x345, 0x223, 0x334, 0x566]),   # night
+    ((0xf74, 0xa32, 0x311), [0x200, 0x311, 0x422, 0x533, 0x421, 0x632, 0x954]),   # volcano
 ]
-STRING = 0xfff
-S('NSKIES\tequ\t%d' % len(SKIES))
-for name, fn in (('skypal', lambda c: c), ('darkpal', lambda c: dim(c, .22)), ('greypal', grey)):
+S('NSKIES\tequ\t%d' % len(JUNGLES))
+def lerp12(a, b, t):
+    ca, cb = split(a), split(b)
+    return c12(*[int(round(x + (y - x) * t)) for x, y in zip(ca, cb)])
+def grad(stops, n):
+    out = []
+    for i in range(n):
+        t = i / max(1, n - 1)
+        for k in range(len(stops) - 1):
+            if stops[k][0] <= t <= stops[k + 1][0]:
+                u = (t - stops[k][0]) / max(1e-9, stops[k + 1][0] - stops[k][0])
+                out.append(lerp12(stops[k][1], stops[k + 1][1], u))
+                break
+    return out
+def grad3(t, m, b, n):
+    return grad([(0, t), (.5, m), (1, b)], n)
+def lvpal(k, fn, fr=None):
+    sky, jung = JUNGLES[k]
+    p = [fn(sky[1])] + [(fr or fn)(c) for c in FRONT[1:]] + [0x000] + [fn(c) for c in jung]
+    return p
+DARKF = lambda c: dim(c, .25)
+for name, fn, fr in (('skypal', lambda c: c, None), ('darkpal', DARKF, lambda c: dim(c, .35)), ('greypal', grey, None)):
     S(name)
-    for sky, top, roots, gem in SKIES:
-        p = [sky, top, roots, 0x000, 0x962, 0xaab, 0xfff, gem] + [STRING] * 8
-        if name == 'darkpal':
-            p = [dim(c, .2) for c in p[:8]] + [dim(STRING, .35)] * 8
-        else:
-            p = [fn(c) for c in p]
-        bytes_(p, 16, 'w')
+    for k in range(len(JUNGLES)):
+        bytes_(lvpal(k, fn, fr), 16, 'w')
+# the sky gradient: 192 lines per level (normal, dark, grey)
+for name, fn in (('skygrad', lambda c: c), ('darkgrad', DARKF), ('greygrad', grey)):
+    S(name)
+    for sky, jung in JUNGLES:
+        bytes_([fn(c) for c in grad3(*sky, 192)], 16, 'w')
 
 # ------------------------------------------------------------------ tiles (16 x 16, colours 0-7, 3 planes)
 def tile(rows):
-    """16 strings of 16 -> per line: plane 0, 1, 2 words (96 bytes)"""
+    """16 strings of 16 -> per line: plane 0, 1, 2 words (96 bytes). K = black (1)"""
     assert len(rows) == 16, rows
     data = []
     for row in rows:
         assert len(row) == 16, row
         w = [0, 0, 0]
         for x, ch in enumerate(row):
-            c = 0 if ch == '.' else (3 if ch == 'K' else int(ch))
+            c = 0 if ch == '.' else (1 if ch == 'K' else int(ch))
             for p in range(3):
                 if c >> p & 1:
                     w[p] |= 0x8000 >> x
@@ -94,94 +120,115 @@ def rot(rows):
     n = len(rows)
     return [''.join(rows[n - 1 - sx][sy] for sx in range(n)) for sy in range(n)]
 
-TOPMID = [
+# a tree trunk lying across: bark with dark grain, moss and leaves hanging below
+TRUNK = [
     "KKKKKKKKKKKKKKKK",
-    "1111111111111111",
-    "11K11111111K1111",
-    "1111111K11111111",
-    "1111111111111111",
+    "3335333333353333",
+    "3333233333333223",
+    "2333333322333333",
+    "3322333333333332",
+    "3333333233333333",
+    "2333223333332233",
+    "3333333333333333",
+    "2233333332223333",
+    "2222222222222222",
     "KKKKKKKKKKKKKKKK",
-]
-ROOTS = [
-    "K222222KK222222K",
-    "K222222KK222222K",
-    ".K2222K..K2222K.",
-    ".K2222K..K2222K.",
-    "..K22K....K22K..",
-    "...KK......KK...",
-    "................",
-    "................",
+    ".K45K...K5K..K4K",
+    "..K4K....K...K5K",
+    "...K..........K.",
     "................",
     "................",
 ]
-def ends(rows, left, right):
-    rows = [list(r) for r in rows]
-    if left:
-        rows[0][0] = rows[0][1] = '.'
-        rows[1][0] = 'K'
-        rows[5][0] = '.'
-        for y in (2, 3, 4):
-            rows[y][0] = 'K'
-    if right:
-        rows[0][15] = rows[0][14] = '.'
-        rows[1][15] = 'K'
-        rows[5][15] = '.'
-        for y in (2, 3, 4):
-            rows[y][15] = 'K'
-    return [''.join(r) for r in rows]
-BONE = [  # a bone ladder
-    "...K2K....K2K...",
-    "...K2KKKKKK2K...",
-    "..K2222222222K..",
-    "...K2KKKKKK2K...",
-] * 4
+LEND = [  # the cut end, on the left
+    "...KKKKKKKKKKKKK",
+    "..K3363333353333",
+    ".K36632333333223",
+    "K36336633322333K".replace('K', '3', 1) if False else "K363363333333333",
+    "K363K63322333332",
+    "K363K63333333333",
+    "K366363333332233",
+    ".K36632333333333",
+    "..K3363332223333",
+    "...K222222222222",
+    "....KKKKKKKKKKKK",
+    "......K5K..K4K..",
+    ".......K....K5K.",
+    "............K...",
+    "................",
+    "................",
+]
+REND = [r[::-1] for r in LEND]
+def single():
+    return [LEND[y][:8] + REND[y][8:] for y in range(16)]
+# a vine to climb: a twisted green stem with leaves
+VINE = [
+    "......K45K......",
+    ".....K454K......",
+    "..KK.K545K......",
+    ".K55KK454K......",
+    "K5544K545K......",
+    ".KK44K454K......",
+    "...KKK545KKK....",
+    "......K454K5K...",
+    "......K545K55K..",
+    "......K454K455K.",
+    "......K545KK44K.",
+    "......K454K.KK..",
+    ".....KK545K.....",
+    ".....K5454K.....",
+    "......K545K.....",
+    "......K454K.....",
+]
 ROPE = [
-    ".......K4K......",
-    "......K44K......",
-    "......K4K4K.....",
-    ".....K4K44K.....",
-    "......K44K......",
-    "......K4K4K.....",
-    ".....K4K44K.....",
-    "......K44K......",
-    ".....KK44KK.....",
-    "....K444444K....",
-    ".....KK44KK.....",
-    "......K44K......",
-    "......K4K4K.....",
-    ".....K4K44K.....",
-    "......K44K......",
-    "......K4K4K.....",
+    ".......K3K......",
+    "......K33K......",
+    "......K3K3K.....",
+    ".....K3K33K.....",
+    "......K33K......",
+    "......K3K3K.....",
+    ".....K3K33K.....",
+    "......K33K......",
+    ".....KK33KK.....",
+    "....K333333K....",
+    ".....KK33KK.....",
+    "......K33K......",
+    "......K3K3K.....",
+    ".....K3K33K.....",
+    "......K33K......",
+    "......K3K3K.....",
 ]
 CHAIN = [
     "......KKKK......",
-    ".....K5665K.....",
-    ".....K5KK5K.....",
-    ".....K5KK5K.....",
-    ".....K5555K.....",
+    ".....K6336K.....",
+    ".....K6KK3K.....",
+    ".....K6KK3K.....",
+    ".....K6663K.....",
     "......KKKK......",
-    ".......K5K......",
-    ".......K5K......",
+    ".......K6K......",
+    ".......K3K......",
 ] * 2
-LADDERS = [BONE, ROPE, CHAIN]
+LADDERS = [VINE, ROPE, CHAIN]
+def trunk_with(lad):
+    """a trunk the vine / rope / chain hangs from: wrapped round it, then down"""
+    rows = [list(r) for r in TRUNK[:11]]
+    for y in range(1, 10):
+        for x in range(6, 10):
+            ch = lad[y][x]
+            if ch != '.':
+                rows[y][x] = ch
+    return [''.join(r) for r in rows] + lad[11:]
 KEY = [
     "................",
     "................",
     "....KKKK........",
-    "...K2222K.......",
-    "..K22KK22K......",
-    "..K2K..K2KKKKKK.",
-    "..K2K..K2222222K",
-    "..K22KK22KK2KK2K",
-    "...K2222K.K2KK2K",
+    "...K6666K.......",
+    "..K66KK66K......",
+    "..K6K..K6KKKKKK.",
+    "..K6K..K6666666K",
+    "..K66KK66KK6KK6K",
+    "...K6666K.K6KK6K",
     "....KKKK...K..K.",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-]
+] + ['.' * 16] * 6
 GEM = [
     "................",
     "................",
@@ -194,41 +241,28 @@ GEM = [
     ".....K7777K.....",
     "......K77K......",
     ".......KK.......",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-]
+] + ['.' * 16] * 5
 BULB = [
     "......KKKK......",
     ".....K6666K.....",
-    "....K662266K....",
-    "....K626626K....",
-    "....K626626K....",
-    "....K662266K....",
+    "....K667766K....",
+    "....K676676K....",
+    "....K676676K....",
+    "....K667766K....",
     ".....K6666K.....",
     "......K66K......",
-    "......K55K......",
-    "......K55K......",
+    "......K22K......",
+    "......K22K......",
     ".......KK.......",
-    "................",
-    "................",
-    "................",
-    "................",
-    "................",
-]
+] + ['.' * 16] * 5
 EMPTYT = ['.' * 16] * 16
-# tile numbers: 0 empty, 1-4 platform (single, left end, middle, right end),
-# 5-7 ladder (bone, rope, chain), 8-10 platform with ladder (bone, rope, chain),
-# 11 key, 12 gem, 13 bulb
-tiles = [EMPTYT]
-for l, r in ((1, 1), (1, 0), (0, 0), (0, 1)):
-    tiles.append(ends(TOPMID, l, r) + ROOTS)
+# tile numbers: 0 empty, 1-4 trunk (single, left end, middle, right end),
+# 5-7 vine, rope, chain, 8-10 trunk with vine / rope / chain, 11 key, 12 gem, 13 bulb
+tiles = [EMPTYT, single(), LEND, TRUNK, REND]
 for L in LADDERS:
     tiles.append(L)
 for L in LADDERS:
-    tiles.append(TOPMID + L[6:])
+    tiles.append(trunk_with(L))
 tiles += [KEY, GEM, BULB]
 S('NTILES\tequ\t%d' % len(tiles))
 S('tilesN')
@@ -237,6 +271,87 @@ for t in tiles:
 S('tilesR')
 for t in tiles:
     bytes_(tile(rot(t)), 12, 'w')
+
+# ------------------------------------------------------------------ the jungle background (playfield 2)
+# 320 x 192, repeats every 320 pixels; colours 1-7 (= 9-15), 0 = the sky
+from PIL import ImageDraw
+BW, BH = 320, 192
+jr = random.Random(11)
+bgim = Image.new('P', (BW * 3, BH), 0)
+d = ImageDraw.Draw(bgim)
+def wrap(fn, x, *a):
+    for o in (0, BW, 2 * BW):
+        fn(x + o, *a)
+def trunk_v(x, w, top, col, edge):
+    d.rectangle([x, top, x + w, BH], fill=col)
+    d.line([x + w, top, x + w, BH], fill=edge)
+    for y in range(top + 6, BH, 11):
+        d.line([x + 2, y, x + w - 3, y + 2], fill=edge)
+def blob(x, y, rx, ry, col):
+    d.ellipse([x - rx, y - ry, x + rx, y + ry], fill=col)
+# far trees (dark), then nearer trees
+for k in range(7):
+    x = jr.randrange(BW); w = jr.randrange(6, 12)
+    wrap(trunk_v, x, w, 20, 1, 2)
+for k in range(5):
+    x = jr.randrange(BW); w = jr.randrange(12, 22)
+    wrap(trunk_v, x, w, 30, 5, 6)
+# the canopy: layers of leaves at the top
+for col, n, ymax, r in ((1, 40, 26, 16), (2, 46, 30, 13), (3, 40, 22, 10), (4, 26, 14, 7)):
+    for k in range(n):
+        x = jr.randrange(BW); y = jr.randrange(-6, ymax)
+        rx = jr.randrange(r // 2, r); ry = jr.randrange(r // 3, r // 2 + 2)
+        wrap(blob, x, y, rx, ry, col)
+# hanging vines with little leaves
+for k in range(16):
+    x = jr.randrange(BW); ln = jr.randrange(40, 130); col = jr.choice((2, 3))
+    def vine(xx, ln=ln, col=col):
+        y = 14
+        while y < 14 + ln:
+            xx2 = xx + int(2 * math.sin(y / 9.0))
+            d.point([xx2, y], fill=col)
+            d.point([xx2, y + 1], fill=col)
+            if y % 12 == 0:
+                d.ellipse([xx2 - 3, y, xx2, y + 2], fill=7 if col == 3 else 3)
+            y += 2
+    wrap(lambda xx: vine(xx), x)
+# big leaves and ferns at the bottom
+for col, n, ytop, r in ((1, 30, 150, 18), (2, 34, 160, 14), (3, 30, 170, 10), (7, 14, 178, 5)):
+    for k in range(n):
+        x = jr.randrange(BW); y = jr.randrange(ytop, BH + 4)
+        rx = jr.randrange(r // 2, r); ry = jr.randrange(r // 3, r // 2 + 2)
+        wrap(blob, x, y, rx, ry, col)
+bgtile = bgim.crop((BW, 0, 2 * BW, BH))      # the middle copy: seamless
+def bgplanes(get, w, h):
+    """interleaved 3 planes: per line plane 0, 1, 2 (w/8 bytes each)"""
+    rb = w // 8
+    out = bytearray(rb * 3 * h)
+    for y in range(h):
+        for x in range(w):
+            c = get(x, y)
+            if not c:
+                continue
+            for p in range(3):
+                if c >> p & 1:
+                    out[(y * 3 + p) * rb + (x >> 3)] |= 0x80 >> (x & 7)
+    return out
+# normal: 672 x 192, bitmap x 16.. = picture x 0.. (repeating)
+bgN = bgplanes(lambda x, y: bgtile.getpixel(((x - 16) % BW, y)), 672, BH)
+# turned 90 degrees: 320 wide (the jungle at x 64-255) x 640 lines (two periods)
+bgR = bgplanes(lambda x, y: bgtile.getpixel((y % BW, 64 + 191 - x)) if 64 <= x < 256 else 0, 320, 640)
+open(os.path.join(ROOT, 'src', 'bg_n.bin'), 'wb').write(bgN)
+open(os.path.join(ROOT, 'src', 'bg_r.bin'), 'wb').write(bgR)
+# a preview of the jungle with the first palette
+pv = bgtile.convert('RGB')
+pal0 = lvpal(0, lambda c: c)
+g0 = grad3(*JUNGLES[0][0], 192)
+pv = Image.new('RGB', (BW, BH))
+for y in range(BH):
+    for x in range(BW):
+        c = bgtile.getpixel((x, y))
+        v = g0[y] if c == 0 else pal0[8 + c]
+        pv.putpixel((x, y), (((v >> 8) & 15) * 17, ((v >> 4) & 15) * 17, (v & 15) * 17))
+pv.resize((BW * 2, BH * 2), Image.NEAREST).save(os.path.join(ROOT, 'art', 'jungle_preview.png'))
 
 # ------------------------------------------------------------------ sprites
 def pix(rows, w, h, align='bottom', dx=None):
@@ -511,6 +626,8 @@ for n in order:
     S('\tdc.l\tsfx_%s' % n)
     S('\tdc.w\t%d' % ((len(SFX[n]) + 1) // 2))
 S('\tsection\tchipdata,data_c')
+S('bgN\tincbin\t"bg_n.bin"')
+S('bgR\tincbin\t"bg_r.bin"')
 S('silence\tdc.w\t0,0')
 S('wave_sq\tdc.b\t' + ','.join(['60'] * 8 + ['-60'] * 8))
 tri = [int(100 * (1 - abs((i / 32) * 4 - 2))) for i in range(32)]

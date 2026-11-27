@@ -114,30 +114,33 @@ def sprite(c, rows, x, y, s, kind='player', flip=False):
             c.setFillColor(col[k])
             c.rect(x + i * s, y + (n - 1 - r) * s, s + .02, s + .02, stroke=0, fill=1)
 
+BARK = HexColor('#994422'); BARKD = HexColor('#552211'); LEAF = HexColor('#55bb33'); LEAFD = HexColor('#226611')
 def platform(c, x, y, n, s):
-    """a stone age platform: magenta top, yellow roots; n tiles of 16 pixels"""
+    """a fallen tree trunk lying across, top at y; n tiles of 16 pixels"""
     w = n * 16 * s
-    c.setFillColor(black); c.rect(x, y - 6 * s, w, 6 * s, stroke=0, fill=1)
-    c.setFillColor(MAG); c.rect(x, y - 5 * s, w, 4 * s, stroke=0, fill=1)
-    for k in range(n * 2):
-        p = c.beginPath()
-        x0 = x + k * 8 * s
-        p.moveTo(x0, y - 6 * s); p.lineTo(x0 + 8 * s, y - 6 * s); p.lineTo(x0 + 4 * s, y - 12 * s); p.close()
-        c.setFillColor(black); c.drawPath(p, stroke=0, fill=1)
-        p = c.beginPath()
-        p.moveTo(x0 + s, y - 6 * s); p.lineTo(x0 + 7 * s, y - 6 * s); p.lineTo(x0 + 4 * s, y - 11 * s); p.close()
-        c.setFillColor(YEL); c.drawPath(p, stroke=0, fill=1)
+    c.setFillColor(black); c.roundRect(x, y - 11 * s, w, 11 * s, 4 * s, stroke=0, fill=1)
+    c.setFillColor(BARK); c.roundRect(x + s, y - 10 * s, w - 2 * s, 9 * s, 3.5 * s, stroke=0, fill=1)
+    c.setFillColor(BARKD)
+    for k in range(int(n * 2.5)):
+        c.rect(x + (3 + k * 6.3) * s, y - (3 + (k * 7) % 6) * s, 3 * s, .8 * s, stroke=0, fill=1)
+    c.setFillColor(HexColor('#ffcc22')); c.circle(x + 3 * s, y - 5.5 * s, 2.2 * s, stroke=0, fill=1)
+    c.setFillColor(BARK); c.circle(x + 3 * s, y - 5.5 * s, 1.2 * s, stroke=0, fill=1)
+    c.setFillColor(LEAF)
+    for k in range(int(n * 3)):
+        c.rect(x + (2 + k * 5.1) * s, y - (13 + k % 3) * s, 1.2 * s, (2 + k % 3) * s, stroke=0, fill=1)
 
 def ladder(c, x, y, h, s):
-    """a bone ladder from y up to y + h"""
-    c.setFillColor(YEL)
-    c.rect(x + 4 * s, y, 1.6 * s, h, stroke=0, fill=1)
-    c.rect(x + 10.4 * s, y, 1.6 * s, h, stroke=0, fill=1)
+    """a vine from y up to y + h"""
+    c.setFillColor(LEAFD); c.rect(x + 6 * s, y, 4 * s, h, stroke=0, fill=1)
+    c.setFillColor(LEAF); c.rect(x + 7 * s, y, 2 * s, h, stroke=0, fill=1)
     k = 0
-    while k * 4 * s < h:
-        c.rect(x + 3 * s, y + k * 4 * s, 10 * s, 1.4 * s, stroke=0, fill=1)
+    while k * 8 * s < h:
+        side = -1 if k % 2 else 1
+        c.setFillColor(LEAF)
+        c.ellipse(x + 8 * s + (side * 6 - 3) * s, y + (k * 8 + 2) * s, x + 8 * s + (side * 6 + 3) * s, y + (k * 8 + 5) * s, stroke=0, fill=1)
         k += 1
 
+JUNGLE = os.path.join(ROOT, 'art', 'jungle_preview.png')
 def keyicon(c, x, y, s):
     c.setFillColor(YEL); c.setStrokeColor(black); c.setLineWidth(.6 * s)
     c.circle(x + 3 * s, y + 3 * s, 2.6 * s, stroke=1, fill=1)
@@ -145,11 +148,11 @@ def keyicon(c, x, y, s):
     c.rect(x + 10 * s, y + .4 * s, 1.4 * s, 2 * s, stroke=1, fill=1)
 
 def scene(c, x, y, w, h):
-    """a little stone age picture for the covers"""
-    c.setFillColor(SKY); c.rect(x, y, w, h, stroke=0, fill=1)
+    """a little jungle picture for the covers"""
     s = w / 200
     c.saveState()
     p = c.beginPath(); p.rect(x, y, w, h); c.clipPath(p, stroke=0)
+    c.drawImage(ImageReader(JUNGLE), x, y, max(w, h * 320 / 192), max(h, w * 192 / 320))
     platform(c, x, y + 14 * s, 13, s)
     platform(c, x + 8 * s, y + 62 * s, 6, s)
     platform(c, x + 120 * s, y + 62 * s, 6, s)
@@ -211,8 +214,8 @@ def manual():
     y = newpage('THE STORY')
     y = para(c, "Long, long ago, when the mountains were still young, the caveman <b>Stronkie</b> kept the "
              "keys of the stone age: the keys to every cave, every bone gate and every rock door. One stormy "
-             "night the keys were scattered all over the land - over the bone valleys, the rope bridges and "
-             "the iron caves.", M, y, W - 2 * M, 9.5)
+             "night the keys were scattered all over the jungle - over fallen tree trunks, up the vines, across "
+             "the rope bridges and into the old temple.", M, y, W - 2 * M, 9.5)
     y = para(c, "Stronkie has to get them all back before the sun goes down. When the time runs out the "
              "<b>lights go out</b>, and in the dark nothing is safe. Luckily the cavemen left <b>light bulbs</b> "
              "(don't ask how) here and there: they bring the light back and give him more time.", M, y - 8, W - 2 * M, 9.5)
@@ -230,10 +233,10 @@ def manual():
          "Time left at the end is worth 10 points a second."),
         ('THE TIME', "The bar in the score panel. When it is empty the lights go out: the level turns dark, "
          "and the yo-yo goes right through the balloons and daggers. A light bulb gives 15 seconds and the light back."),
-        ('JUMPING AND SLIDING', "Push up to jump (up and left/right to jump sideways). Step off a ledge and "
+        ('JUMPING AND SLIDING', "Walk along the tree trunks. Push up to jump (up and left/right to jump sideways). Step off a ledge and "
          "Stronkie slides down diagonally. One floor down is fine - two floors is a drop he does not survive, "
          "and neither is a pit in the ground."),
-        ('LADDERS, ROPES, CHAINS', "Bone ladders in the first levels, then ropes, then chains. Up and down to "
+        ('VINES, ROPES, CHAINS', "Vines in the first levels, then ropes, then chains. Up and down to "
          "climb; at a floor, left or right steps off."),
         ('THE YO-YO', "Fire throws it. A Scrubbly, Hooter or Poglet that is hit goes poof (and comes back "
          "later, when Stronkie is far away). Balloons and daggers pop - but only while it is light."),
@@ -279,7 +282,7 @@ def manual():
 
     # screens
     y = newpage('THE STONE AGE')
-    shots_ = (('level1.png', 'Level 1, Bone Valley: keys, gems and the first Scrubbly.'),
+    shots_ = (('level1.png', 'Level 1, Jungle Edge: tree trunks, a vine, keys and the first monsters.'),
               ('dark.png', 'Lights out! Find a light bulb.'),
               ('flip.png', 'Loop 2: upside down.'),
               ('rot.png', 'Loop 3: turned 90 degrees.'))
@@ -343,7 +346,7 @@ def box():
         w = (Wf - 22 * mm) / 2
         for i, n in enumerate(('title.png', 'level1.png', 'flip.png', 'rot.png')):
             shot(c, n, x + 8 * mm + (i % 2) * (w + 6 * mm), y + Hf - 87 * mm - (i // 2) * (w * .8 + 6 * mm), w)
-        para(c, "- 8 smooth scrolling levels: bone ladders, ropes and chains<br/>- the yo-yo, light bulbs, gems, the darkness<br/>"
+        para(c, "- 8 scrolling jungle levels with a parallax jungle behind<br/>- the yo-yo, light bulbs, gems, the darkness<br/>"
              "- endless loops: upside down, turned 90 degrees, black and white<br/>- music, sound effects, high scores<br/>- floppy, hard disk installer and WHDLoad",
              x + 8 * mm, y + 47 * mm, Wf - 16 * mm, 8.4, white)
         c.setFillColor(HexColor('#c8102e')); c.rect(x, y, Wf, 10 * mm, stroke=0, fill=1)

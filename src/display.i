@@ -116,40 +116,106 @@ BuildCopper:
 	clr.w	(a0)+
 	move.l	a0,cp_bpl
 	move.w	#$00e0,d1
-	moveq	#7,d2
+	moveq	#11,d2
 .bp2:	move.w	d1,(a0)+
 	clr.w	(a0)+
 	addq.w	#2,d1
 	dbf	d2,.bp2
-	; line 28: the playfield
-	move.l	#(($2c+PFTOP)<<24)|$07fffe,(a0)+
-	CMOVE	$0100,$4200
-	move.w	#$0180,(a0)+
-	move.l	a0,cp_col0
+	; lines 28-219: the playfield, colour 0 per line (the sky)
+	lea	gradptr,a1
+	moveq	#0,d2
+.gl:	move.w	d2,d0
+	add.w	#$2c+PFTOP,d0
+	cmp.w	#$100,d0
+	bne	.nw
+	move.l	#$ffdffffe,(a0)+		; past line 255
+.nw:	lsl.w	#8,d0
+	or.w	#$07,d0
+	move.w	d0,(a0)+
+	move.w	#$fffe,(a0)+
+	tst.w	d2
+	bne	.nc
+	move.w	#$0100,(a0)+			; the first line: the bitplanes on
+	move.l	a0,cp_con0
+	move.w	#$4200,(a0)+
+.nc:	move.w	#$0180,(a0)+
+	move.l	a0,(a1)+
 	clr.w	(a0)+
-	; after the playfield (line 220 = $108)
-	move.l	#$ffdffffe,(a0)+
+	addq.w	#1,d2
+	cmp.w	#PFH,d2
+	bne	.gl
+	move.l	gradptr,cp_col0
+	; after the playfield (line 224): the message panel, the screen bitmap
+	; again with the panel colours
 	move.l	#((($2c+PFTOP+PFH)&$ff)<<24)|$07fffe,(a0)+
-	move.w	#$0100,(a0)+
-	move.l	a0,cp_botcon
-	move.w	#$0200,(a0)+
+	CMOVE	$0100,$0200
 	move.w	#$0180,(a0)+
 	move.l	a0,cp_botcol
 	clr.w	(a0)+
+	CMOVE	$0092,$0038
+	CMOVE	$0102,$0000
+	CMOVE	$0108,$0000
+	CMOVE	$010a,$0000
+	move.l	#screen+(PFTOP+PFH)*40,d0
+	move.w	#$00e0,d1
+	moveq	#3,d2
+.bb:	move.w	d1,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d1
+	move.w	d1,(a0)+
+	swap	d0
+	move.w	d0,(a0)+
+	addq.w	#2,d1
+	add.l	#PLANE,d0
+	dbf	d2,.bb
+	lea	hudpal+2,a1
+	move.w	#$0182,d1
+	moveq	#14,d2
+.bc:	move.w	d1,(a0)+
+	move.w	(a1)+,(a0)+
+	addq.w	#2,d1
+	dbf	d2,.bc
+	move.l	#((($2c+PFTOP+PFH+1)&$ff)<<24)|$07fffe,(a0)+
+	move.w	#$0100,(a0)+
+	move.l	a0,cp_botcon
+	move.w	#$4200,(a0)+
 	move.l	#$fffffffe,(a0)+
 	rts
 
 ; SetPFPal: a0 = 16 colours for the playfield
 SetPFPal:
-	movem.l	d0/a0-a1,-(sp)
-	move.l	cp_col0,a1
-	move.w	(a0)+,(a1)
+	movem.l	d0-d1/a0-a2,-(sp)
+	move.w	(a0)+,d1
+	lea	gradptr,a2
+	move.w	#PFH-1,d0
+.g:	move.l	(a2)+,a1
+	move.w	d1,(a1)
+	dbf	d0,.g
 	move.l	cp_pf,a1
 	moveq	#14,d0
 .l:	move.w	(a0)+,2(a1)
 	addq.l	#4,a1
 	dbf	d0,.l
-	movem.l	(sp)+,d0/a0-a1
+	movem.l	(sp)+,d0-d1/a0-a2
+	rts
+
+; SetGrad: a0 = 192 colours for colour 0 (the sky), d0 <> 0 upside down
+SetGrad:
+	movem.l	d0-d1/a0-a2,-(sp)
+	lea	gradptr,a2
+	move.w	#PFH-1,d1
+	tst.w	d0
+	beq	.l
+	lea	PFH*2(a0),a0
+.u:	move.l	(a2)+,a1
+	move.w	-(a0),(a1)
+	dbf	d1,.u
+	bra	.x
+.l:	move.l	(a2)+,a1
+	move.w	(a0)+,(a1)
+	dbf	d1,.l
+.x:	movem.l	(sp)+,d0-d1/a0-a2
 	rts
 
 ; SetSprPal: a0 = the 16 sprite colours
@@ -175,6 +241,8 @@ SetTitleDisplay:
 	bsr	SetPFPal
 	move.l	cp_botcon,a0
 	move.w	#$4200,(a0)
+	move.l	cp_con0,a0
+	move.w	#$4200,(a0)
 	move.l	cp_botcol,a0
 	clr.w	(a0)
 	lea	sprpal,a0
@@ -187,8 +255,8 @@ SetGameDisplay:
 	clr.w	titlemode
 	clr.w	sprscr
 	move.w	#PFH,clipbot
-	move.l	cp_botcon,a0
-	move.w	#$0200,(a0)
+	move.l	cp_con0,a0
+	move.w	#$6600,(a0)			; 6 planes, dual playfield
 	bsr	ClearSprites
 	bra	PFRegs
 
@@ -221,53 +289,73 @@ UpdateDisplay:
 	clr.w	(a0)
 	move.l	cp_con1,a0
 	clr.w	(a0)
-	move.l	#screen+PFTOP*40,d0
-	move.l	#PLANE,d1
+	move.l	#screen+PFTOP*40,d0		; planes 1, 3 (and 5)
+	move.l	#PLANE*2,d1
+	move.l	#screen+PFTOP*40+PLANE,d2	; planes 2, 4 (and 6)
+	move.l	d1,d3
 	bsr	.ptrs
 	bra	.spr
 .game:	move.w	dmode,d7
-	cmp.w	#DM_ROT,d7
+	move.w	camx,d4				; the jungle moves at half speed
+	lsr.w	#1,d4
+	cmp.w	#320,d4
+	blo	.bx
+	sub.w	#320,d4
+.bx:	cmp.w	#DM_ROT,d7
 	bne	.nrot
 	move.l	cp_ddf,a0
 	move.w	#$0038,(a0)
 	move.l	cp_mod1,a0
-	move.w	#RRB*3,(a0)
+	move.w	#RRB*2,(a0)
 	move.l	cp_mod2,a0
-	move.w	#RRB*3,(a0)
+	move.w	#RRB*2,(a0)
 	move.l	cp_con1,a0
 	clr.w	(a0)
 	move.w	camx,d0
 	mulu	#RSTR,d0
 	add.l	#lvbm,d0
 	moveq	#RRB,d1
+	mulu	#BRSTR,d4
+	move.l	#bgR,d2
+	add.l	d4,d2
+	moveq	#40,d3
 	bsr	.ptrs
 	bra	.col
-.nrot:	move.w	camx,d0
-	add.w	#15,d0
-	lsr.w	#4,d0				; q
-	move.w	d0,d2
-	lsl.w	#4,d2
-	sub.w	camx,d2				; delay
-	move.w	d2,d3
-	lsl.w	#4,d3
-	or.w	d3,d2
-	move.l	cp_con1,a0
-	move.w	d2,(a0)
-	move.l	cp_ddf,a0
-	move.w	#$0030,(a0)
+.nrot:	; the level: pointer word q, delay d (fine scroll)
+	move.w	camx,d0
+	bsr	.fine
+	move.w	d1,d6				; PF1 delay
 	add.w	d0,d0
 	ext.l	d0
 	add.l	#lvbm,d0
-	move.w	#NSTR-42,d2
+	move.l	d0,a2
+	move.w	d4,d0				; the jungle
+	bsr	.fine
+	lsl.w	#4,d1
+	or.w	d1,d6				; PF2 delay
+	move.l	cp_con1,a0
+	move.w	d6,(a0)
+	add.w	d0,d0
+	ext.l	d0
+	add.l	#bgN,d0
+	move.l	d0,d2
+	move.l	a2,d0
+	move.l	cp_ddf,a0
+	move.w	#$0030,(a0)
+	move.w	#NSTR-42,d4
+	move.w	#BNSTR-42,d5
 	cmp.w	#DM_FLIP,d7
 	bne	.nf
 	add.l	#NSTR*(PFH-1),d0
-	move.w	#-NSTR-42,d2
+	add.l	#BNSTR*(PFH-1),d2
+	move.w	#-NSTR-42,d4
+	move.w	#-BNSTR-42,d5
 .nf:	move.l	cp_mod1,a0
-	move.w	d2,(a0)
+	move.w	d4,(a0)
 	move.l	cp_mod2,a0
-	move.w	d2,(a0)
+	move.w	d5,(a0)
 	moveq	#NRB,d1
+	moveq	#BNRB,d3
 	bsr	.ptrs
 .col:	; the colours: black and white flashes now and then
 	cmp.w	#DM_BW,dmode
@@ -291,16 +379,31 @@ UpdateDisplay:
 	bsr	DrawString
 .x:	movem.l	(sp)+,d0-d7/a0-a3
 	rts
-; .ptrs: d0 = plane 0, d1 = distance between planes -> the copper
+; .fine: d0 = scroll x -> d0 = first word, d1 = delay
+.fine:	move.w	d0,d1
+	add.w	#15,d0
+	lsr.w	#4,d0
+	move.w	d0,d5
+	lsl.w	#4,d5
+	sub.w	d1,d5
+	move.w	d5,d1
+	rts
+; .ptrs: playfield 1 (planes 1, 3, 5) from d0, d1 apart;
+;        playfield 2 (planes 2, 4, 6) from d2, d3 apart -> the copper
 .ptrs:	move.l	cp_bpl,a0
-	moveq	#3,d2
+	moveq	#2,d5
 .pl:	swap	d0
 	move.w	d0,2(a0)
 	swap	d0
 	move.w	d0,6(a0)
-	addq.l	#8,a0
+	swap	d2
+	move.w	d2,10(a0)
+	swap	d2
+	move.w	d2,14(a0)
+	lea	16(a0),a0
 	add.l	d1,d0
-	dbf	d2,.pl
+	add.l	d3,d2
+	dbf	d5,.pl
 	rts
 
 ;=====================================================================
@@ -324,18 +427,14 @@ DrawLevelGfx:
 	bpl	.cl
 	cmp.w	#DM_ROT,dmode
 	bne	.tiles
-	; turned: black rock on both sides of the level (colour 3)
+	; turned: black on both sides of the level (colour 1)
 	lea	lvbm,a0
 	move.w	#960-1,d0
 	moveq	#-1,d1
 .side:	move.l	d1,(a0)
 	move.l	d1,4(a0)
-	move.l	d1,RRB(a0)
-	move.l	d1,RRB+4(a0)
 	move.l	d1,32(a0)
 	move.l	d1,36(a0)
-	move.l	d1,RRB+32(a0)
-	move.l	d1,RRB+36(a0)
 	lea	RSTR(a0),a0
 	dbf	d0,.side
 .tiles:	lea	gmap,a1
@@ -387,7 +486,6 @@ DrawTile:
 .l:	move.w	(a1)+,(a0)
 	move.w	(a1)+,(a2)
 	move.w	(a1)+,(a3)
-	clr.w	(a3,d4.w)
 	add.w	d3,a0
 	add.w	d3,a2
 	add.w	d3,a3
@@ -396,24 +494,18 @@ DrawTile:
 	rts
 
 ;=====================================================================
-; the yo-yo string: plane 3 of the level bitmap (nothing else uses it)
+; the yo-yo string: XOR colour 6 (gold) into the level bitmap; the same
+; XOR again takes it away and leaves the trunks as they were
 ;=====================================================================
 DrawString:
 	movem.l	d0-d6/a0,-(sp)
-	; take the old one away
-	tst.w	strdrawn
+	tst.w	strdrawn			; take the old one away
 	beq	.new
 	clr.w	strdrawn
-	move.l	straddr,a0
-	move.w	strlen,d0
-	tst.w	strkind
-	bne	.ev
-.eh:	clr.b	(a0)+				; a row of bytes
-	dbf	d0,.eh
-	bra	.new
-.ev:	clr.b	(a0)				; a column
-	lea	RSTR(a0),a0
-	dbf	d0,.ev
+	move.w	strx0,d0
+	move.w	strx1,d1
+	move.w	stry,d2
+	bsr	XorString
 .new:	tst.w	ystate
 	beq	.x
 	cmp.w	#ST_DEAD,pst
@@ -433,35 +525,35 @@ DrawString:
 	move.w	#959,d1
 .o2:	cmp.w	d0,d1
 	blt	.x
+	move.w	d0,strx0
+	move.w	d1,strx1
+	move.w	d2,stry
+	bsr	XorString
+	move.w	#1,strdrawn
+.x:	movem.l	(sp)+,d0-d6/a0
+	rts
+
+; XorString: world x d0 to d1 at world y d2
+XorString:
+	movem.l	d0-d5/a0,-(sp)
 	cmp.w	#DM_ROT,dmode
 	beq	.vert
-	; a row: bitmap x = world x + 16
-	lea	lvbm+NRB*3,a0
+	; a row: bitmap x = world x + 16, planes 1 and 2
+	lea	lvbm+NRB,a0
 	mulu	#NSTR,d2
 	add.l	d2,a0
 	add.w	#16,d0
 	add.w	#16,d1
-	move.w	d0,d3
-	lsr.w	#3,d3
-	add.w	d3,a0
-	move.l	a0,straddr
-	move.w	d1,d4
-	lsr.w	#3,d4
-	sub.w	d3,d4
-	move.w	d4,strlen
-	clr.w	strkind
 .hl:	move.w	d0,d3
 	lsr.w	#3,d3
 	move.w	d0,d4
 	not.w	d4
 	and.w	#7,d4
-	lea	lvbm+NRB*3,a0
-	add.l	d2,a0
-	bset	d4,(a0,d3.w)
+	bchg	d4,(a0,d3.w)
+	bchg	d4,NRB(a0,d3.w)
 	addq.w	#1,d0
 	cmp.w	d1,d0
 	ble	.hl
-	move.w	#1,strdrawn
 	bra	.x
 .vert:	; a column: bitmap x = 64 + 191 - y, bitmap line = world x
 	move.w	#64+191,d3
@@ -470,21 +562,18 @@ DrawString:
 	lsr.w	#3,d4
 	not.w	d3
 	and.w	#7,d3				; the bit
-	lea	lvbm+RRB*3,a0
+	lea	lvbm+RRB,a0
 	add.w	d4,a0
 	move.w	d0,d5
 	mulu	#RSTR,d5
 	add.l	d5,a0
-	move.l	a0,straddr
 	move.w	d1,d5
 	sub.w	d0,d5
-	move.w	d5,strlen
-	move.w	#1,strkind
-.vl:	bset	d3,(a0)
+.vl:	bchg	d3,(a0)
+	bchg	d3,RRB(a0)
 	lea	RSTR(a0),a0
 	dbf	d5,.vl
-	move.w	#1,strdrawn
-.x:	movem.l	(sp)+,d0-d6/a0
+.x:	movem.l	(sp)+,d0-d5/a0
 	rts
 
 ;=====================================================================

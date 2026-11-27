@@ -42,12 +42,15 @@ CIAA_ICR	equ	$bfed01
 CIAA_CRA	equ	$bfee01
 
 PLANE	equ	40*256			; one bitplane of the screen (title, score panel)
-PFTOP	equ	28			; the playfield starts at screen line 28
+PFTOP	equ	32			; the playfield starts at screen line 32
 PFH	equ	192			; and is 192 lines high
 NRB	equ	124			; level bitmap, normal: 992 pixels per line
-NSTR	equ	NRB*4			; interleaved: one line of 4 planes
+NSTR	equ	NRB*3			; interleaved: one line of 3 planes
 RRB	equ	40			; level bitmap, turned: 320 pixels per line
-RSTR	equ	RRB*4
+RSTR	equ	RRB*3
+BNRB	equ	84			; the jungle, normal: 672 pixels per line
+BNSTR	equ	BNRB*3
+BRSTR	equ	40*3			; the jungle, turned
 LVBMSIZE equ	RSTR*960		; (the bigger one)
 SPRLEN	equ	1280			; one sprite channel's list
 HSN	equ	10			; high score entries
@@ -170,6 +173,8 @@ cp_mod2:	ds.l	1
 cp_con1:	ds.l	1
 cp_bpl:		ds.l	1
 cp_col0:	ds.l	1
+cp_con0:	ds.l	1
+gradptr:	ds.l	PFH
 cp_botcon:	ds.l	1
 cp_botcol:	ds.l	1
 ; display
@@ -186,9 +191,9 @@ sprwp:		ds.l	8
 sprnext:	ds.w	8
 ; the yo-yo string on plane 3
 strdrawn:	ds.w	1
-strkind:	ds.w	1
-straddr:	ds.l	1
-strlen:		ds.w	1
+strx0:		ds.w	1
+strx1:		ds.w	1
+stry:		ds.w	1
 ; sound
 sfxpend:	ds.b	4
 musicon:	ds.w	1
@@ -203,6 +208,7 @@ paused:		ds.w	1
 ; text
 numbuf:		ds.b	12
 linebuf:	ds.b	44
+msgbuf:		ds.b	40
 chbuf:		ds.w	1
 namebuf:	ds.l	1
 ; high scores
@@ -263,7 +269,7 @@ gmap:		ds.b	LVW*LVH
 	even
 
 	section	chipvars,bss_c
-coplist:	ds.l	200
+coplist:	ds.l	800
 screen:		ds.b	PLANE*4
 sprlists:	ds.b	SPRLEN*8
 lvbm:		ds.b	LVBMSIZE
