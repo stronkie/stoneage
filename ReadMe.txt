@@ -54,6 +54,9 @@ THE DEMO
   The free demo has levels 1 and 2.
 
 CHANGES
+  V0.3 (27 Nov 2026) - the new Stronkie Soft boot intro plays before
+  the game on the floppy (animated logo, music "intro numma" by Animal
+  of Superior Art Creations); fire, a mouse button or a key skips it.
   V0.2 (27 Nov 2026) - a loading picture in 32 colours (Stronkie
   throwing his yo-yo in the jungle) while the game loads; a picture
   title screen (the jungle, the monsters, Stronkie walking on a log);

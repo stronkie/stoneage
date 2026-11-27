@@ -62,7 +62,7 @@ and 55 KB other memory. Joystick in port 2.
 ## Building
 Needs the Stronkie Soft Amiga toolkit (`. amiga-toolkit/setup.sh`).
 ```
-VER=0.2 tools/build.sh          # levels check -> gen.py -> assemble -> pack -> ADFs + zips
+VER=0.3 tools/build.sh          # levels check -> gen.py -> assemble -> pack -> ADFs + zips
 tests/run_tests.sh              # level checker, physics check in the 68000 harness, screenshots
 python3 tools/make_print.py 0.2 # manual, box, disk labels
 ```
@@ -77,6 +77,10 @@ python3 tools/make_print.py 0.2 # manual, box, disk labels
   `src/install.s` - hard disk installer. `src/whdload.s` - WHDLoad slave.
 
 ## Changelog
+
+### Not yet on itch
+**V0.3 (27 Nov 2026)** - the Stronkie Soft boot intro (SSIntro, from the toolkit) plays before the game on the
+floppy; hard drive and WHDLoad versions start the game straight away. The demo stays V0.2.
 
 ### On itch (published 27 Nov 2026)
 **V0.2 (27 Nov 2026)** - pictures, classical music, jungle life

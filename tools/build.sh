@@ -43,6 +43,8 @@ for kind in full demo; do
   python3 $TK/tools/adf.py build $ADF "$V" build/disk $TK/tools/bootblock.bin >/dev/null
   echo "built $ADF"
 done
+# the Stronkie Soft boot intro before the game on the floppy (toolkit intro/, build it first)
+python3 $TK/tools/add_intro.py build/${NAME}_V$VER.adf build/${NAME}_V$VER.adf
 # 3. hard drive / CF card zip (unpacked program)
 rm -rf build/hd && mkdir -p build/hd/$NAME
 cp build/Loader build/hd/$NAME/$EXE; cp build/$EXE build/hd/$NAME/StoneAge.game
