@@ -1,0 +1,4 @@
+build/
+t.exe
+tools/__pycache__/
+tests/__pycache__/

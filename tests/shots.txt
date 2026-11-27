@@ -1,0 +1,63 @@
+run 330
+shot title
+fire 3
+run 170
+poke mstimer w 30000
+poke px w 470
+poke py w 88
+poke pdir w -1
+run 3
+shot level1
+poke px w 300
+poke py w 88
+poke pdir w 1
+run 2
+fire 2
+run 7
+shot yoyo
+poke tleft w 3
+run 10
+shot dark
+key ESC
+run 200
+poke devmode w -1
+poke devloop w 1
+fire 3
+run 160
+poke mstimer w 30000
+poke px w 300
+poke py w 88
+run 4
+shot flip
+key ESC
+run 200
+poke devloop w 2
+fire 3
+run 160
+poke mstimer w 30000
+poke px w 280
+poke py w 88
+run 4
+fire 2
+run 8
+shot rot
+key ESC
+run 200
+poke devloop w 3
+poke devlevel w 6
+fire 3
+run 160
+poke mstimer w 30000
+run 4
+shot bw
+key ESC
+run 200
+poke devloop w 0
+poke devlevel w 3
+fire 3
+run 160
+poke mstimer w 30000
+poke px w 420
+poke py w 24
+run 4
+shot ropes
