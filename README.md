@@ -78,7 +78,7 @@ python3 tools/make_print.py 0.1 # manual, box, disk labels
 
 ## Changelog
 
-### Not yet on itch
+### On itch (published 27 Nov 2026)
 **V0.1 (27 Nov 2026)** - the first version
 - 8 scrolling jungle levels: Jungle Edge, Monkey Trees, Snake River Gap (vines), Rope Bridge, Hanging Ropes,
   Dino Nest (ropes), Temple Chains, Volcano Jungle (chains). Tree trunks to walk on, a jungle behind on the
