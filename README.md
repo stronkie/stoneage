@@ -78,7 +78,7 @@ python3 tools/make_print.py 0.2 # manual, box, disk labels
 
 ## Changelog
 
-### Next on itch (Sunday)
+### On itch (published 27 Nov 2026)
 **V0.2 (27 Nov 2026)** - pictures, classical music, jungle life
 - Loading picture (32 colours): Stronkie throwing his yo-yo in the jungle with a Scrubbly, a Hooter, a monkey
   and parrots. A small loader (`SStoneAge`) shows it while it loads `StoneAge.game`.
@@ -90,7 +90,6 @@ python3 tools/make_print.py 0.2 # manual, box, disk labels
 - Now and then a monkey swings by on a vine or walks along the trunk, and parrots fly across: in the game and
   on the title.
 
-### On itch (published 27 Nov 2026)
 **V0.1 (27 Nov 2026)** - the first version
 - 8 scrolling jungle levels: Jungle Edge, Monkey Trees, Snake River Gap (vines), Rope Bridge, Hanging Ropes,
   Dino Nest (ropes), Temple Chains, Volcano Jungle (chains). Tree trunks to walk on, a jungle behind on the
